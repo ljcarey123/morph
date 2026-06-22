@@ -3,3 +3,4 @@ node_modules
 package-lock.json
 architecture.md
 claude.md
+.env.example
