@@ -11,6 +11,11 @@ export const SandboxOrchestrator = {
   <head>
     <meta charset="utf-8" />
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+      :root { color-scheme: light; }
+      body { margin: 0; min-height: 100vh; background: #ffffff; color: #111827; font-family: system-ui, -apple-system, sans-serif; }
+      button, a, input, select, textarea, [onclick] { pointer-events: none; cursor: default; }
+    </style>
   </head>
   <body>${body}</body>
 </html>`

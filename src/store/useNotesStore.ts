@@ -8,10 +8,17 @@ interface NotesState {
   userApiKey: string | null
   createNote: () => string
   updateNoteContent: (id: string, content: string) => void
+  updateNoteTitle: (id: string, title: string) => void
   deleteNote: (id: string) => void
   setActiveNoteId: (id: string | null) => void
   setApiKey: (key: string | null) => void
-  addGeneratedTab: (id: string, tab: Omit<GeneratedUITab, 'id' | 'createdAt'>) => void
+  addPendingTab: (id: string, direction: string, previousCode?: string) => string
+  patchGeneratedTab: (
+    id: string,
+    tabId: string,
+    patch: Partial<Omit<GeneratedUITab, 'id' | 'createdAt'>>,
+  ) => void
+  removeTab: (id: string, tabId: string) => void
   setActiveTabId: (id: string, tabId: string) => void
 }
 
@@ -54,6 +61,19 @@ export const useNotesStore = create<NotesState>()(
         })
       },
 
+      updateNoteTitle: (id, title) => {
+        set((state) => {
+          const note = state.notes[id]
+          if (!note) return state
+          return {
+            notes: {
+              ...state.notes,
+              [id]: { ...note, title, updatedAt: Date.now() },
+            },
+          }
+        })
+      },
+
       deleteNote: (id) => {
         set((state) => {
           const notes = { ...state.notes }
@@ -71,14 +91,21 @@ export const useNotesStore = create<NotesState>()(
         set({ userApiKey: key })
       },
 
-      addGeneratedTab: (id, tab) => {
+      addPendingTab: (id, direction, previousCode) => {
+        const tabId = crypto.randomUUID()
         set((state) => {
           const note = state.notes[id]
           if (!note) return state
           const newTab: GeneratedUITab = {
-            ...tab,
-            id: crypto.randomUUID(),
+            id: tabId,
+            title: direction,
+            code: '',
+            explanation: '',
+            suggestedActions: [],
+            direction,
+            previousCode,
             createdAt: Date.now(),
+            status: 'streaming',
           }
           return {
             notes: {
@@ -89,6 +116,40 @@ export const useNotesStore = create<NotesState>()(
                 activeTabId: newTab.id,
                 updatedAt: Date.now(),
               },
+            },
+          }
+        })
+        return tabId
+      },
+
+      patchGeneratedTab: (id, tabId, patch) => {
+        set((state) => {
+          const note = state.notes[id]
+          if (!note) return state
+          return {
+            notes: {
+              ...state.notes,
+              [id]: {
+                ...note,
+                tabs: note.tabs.map((tab) => (tab.id === tabId ? { ...tab, ...patch } : tab)),
+                updatedAt: Date.now(),
+              },
+            },
+          }
+        })
+      },
+
+      removeTab: (id, tabId) => {
+        set((state) => {
+          const note = state.notes[id]
+          if (!note) return state
+          const tabs = note.tabs.filter((tab) => tab.id !== tabId)
+          const activeTabId =
+            note.activeTabId === tabId ? (tabs.at(-1)?.id ?? null) : note.activeTabId
+          return {
+            notes: {
+              ...state.notes,
+              [id]: { ...note, tabs, activeTabId, updatedAt: Date.now() },
             },
           }
         })
@@ -107,6 +168,6 @@ export const useNotesStore = create<NotesState>()(
         })
       },
     }),
-    { name: 'morph-notes-store-v2' },
+    { name: 'morph-notes-store-v3' },
   ),
 )

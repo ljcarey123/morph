@@ -32,6 +32,23 @@ describe('useNotesStore', () => {
     expect(useNotesStore.getState().notes).toEqual({})
   })
 
+  it('updates the note title and bumps updatedAt', () => {
+    const id = useNotesStore.getState().createNote()
+    const createdAt = useNotesStore.getState().notes[id]?.updatedAt
+
+    useNotesStore.getState().updateNoteTitle(id, 'My note')
+
+    const note = useNotesStore.getState().notes[id]
+    expect(note?.title).toBe('My note')
+    expect(note?.updatedAt).toBeGreaterThanOrEqual(createdAt ?? 0)
+  })
+
+  it('does nothing when updating the title for a note that does not exist', () => {
+    useNotesStore.getState().updateNoteTitle('missing-id', 'My note')
+
+    expect(useNotesStore.getState().notes).toEqual({})
+  })
+
   it('deletes a note and clears activeNoteId if it was the active one', () => {
     const id = useNotesStore.getState().createNote()
 
@@ -62,62 +79,92 @@ describe('useNotesStore', () => {
     expect(useNotesStore.getState().userApiKey).toBeNull()
   })
 
-  it('appends a generated tab to the matching note and makes it active', () => {
+  it('adds a pending tab in streaming state and makes it active', () => {
     const id = useNotesStore.getState().createNote()
 
-    useNotesStore.getState().addGeneratedTab(id, {
-      title: 'Timeline',
-      uiType: 'html_snippet',
-      code: '<div></div>',
-      explanation: 'because',
-      suggestedActions: ['a', 'b'],
-      direction: 'Timeline',
-    })
+    const tabId = useNotesStore.getState().addPendingTab(id, 'Timeline')
 
     const note = useNotesStore.getState().notes[id]
     expect(note?.tabs).toHaveLength(1)
     expect(note?.tabs[0]).toMatchObject({
+      id: tabId,
       title: 'Timeline',
+      code: '',
+      explanation: '',
+      suggestedActions: [],
+      direction: 'Timeline',
+      status: 'streaming',
+    })
+    expect(note?.activeTabId).toBe(tabId)
+  })
+
+  it('does nothing when adding a pending tab to a note that does not exist', () => {
+    useNotesStore.getState().addPendingTab('missing-id', 'Timeline')
+
+    expect(useNotesStore.getState().notes).toEqual({})
+  })
+
+  it('patches a generated tab with the final result and marks it done', () => {
+    const id = useNotesStore.getState().createNote()
+    const tabId = useNotesStore.getState().addPendingTab(id, 'Timeline')
+
+    useNotesStore.getState().patchGeneratedTab(id, tabId, {
       uiType: 'html_snippet',
       code: '<div></div>',
       explanation: 'because',
       suggestedActions: ['a', 'b'],
-      direction: 'Timeline',
+      status: 'done',
     })
-    expect(note?.activeTabId).toBe(note?.tabs[0]?.id)
-  })
 
-  it('does nothing when adding a generated tab to a note that does not exist', () => {
-    useNotesStore.getState().addGeneratedTab('missing-id', {
-      title: 'Timeline',
+    const note = useNotesStore.getState().notes[id]
+    expect(note?.tabs[0]).toMatchObject({
       uiType: 'html_snippet',
       code: '<div></div>',
       explanation: 'because',
-      suggestedActions: [],
-      direction: 'Timeline',
+      suggestedActions: ['a', 'b'],
+      status: 'done',
     })
+  })
+
+  it('does nothing when patching a tab on a note that does not exist', () => {
+    useNotesStore.getState().patchGeneratedTab('missing-id', 'tab-id', { status: 'done' })
+
+    expect(useNotesStore.getState().notes).toEqual({})
+  })
+
+  it('removes a tab and falls back to the previous tab when the active tab is removed', () => {
+    const id = useNotesStore.getState().createNote()
+    const firstTabId = useNotesStore.getState().addPendingTab(id, 'Timeline')
+    const secondTabId = useNotesStore.getState().addPendingTab(id, 'Mind map')
+
+    useNotesStore.getState().removeTab(id, secondTabId)
+
+    const note = useNotesStore.getState().notes[id]
+    expect(note?.tabs.map((tab) => tab.id)).toEqual([firstTabId])
+    expect(note?.activeTabId).toBe(firstTabId)
+  })
+
+  it('clears activeTabId when the last remaining tab is removed', () => {
+    const id = useNotesStore.getState().createNote()
+    const tabId = useNotesStore.getState().addPendingTab(id, 'Timeline')
+
+    useNotesStore.getState().removeTab(id, tabId)
+
+    const note = useNotesStore.getState().notes[id]
+    expect(note?.tabs).toEqual([])
+    expect(note?.activeTabId).toBeNull()
+  })
+
+  it('does nothing when removing a tab from a note that does not exist', () => {
+    useNotesStore.getState().removeTab('missing-id', 'tab-id')
 
     expect(useNotesStore.getState().notes).toEqual({})
   })
 
   it('switches the active tab for a note', () => {
     const id = useNotesStore.getState().createNote()
-    useNotesStore.getState().addGeneratedTab(id, {
-      title: 'Timeline',
-      uiType: 'html_snippet',
-      code: '<div></div>',
-      explanation: 'because',
-      suggestedActions: [],
-      direction: 'Timeline',
-    })
-    useNotesStore.getState().addGeneratedTab(id, {
-      title: 'Mind map',
-      uiType: 'svg_diagram',
-      code: '<svg></svg>',
-      explanation: 'because',
-      suggestedActions: [],
-      direction: 'Mind map',
-    })
+    useNotesStore.getState().addPendingTab(id, 'Timeline')
+    useNotesStore.getState().addPendingTab(id, 'Mind map')
     const [firstTab] = useNotesStore.getState().notes[id]?.tabs ?? []
 
     useNotesStore.getState().setActiveTabId(id, firstTab?.id ?? '')

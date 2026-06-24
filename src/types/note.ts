@@ -11,10 +11,12 @@ export interface Note {
 export interface GeneratedUITab {
   id: string
   title: string
-  uiType: 'html_snippet' | 'svg_diagram'
+  uiType?: 'html_snippet' | 'svg_diagram'
   code: string
   explanation: string
   suggestedActions: string[]
   direction: string
+  previousCode?: string
   createdAt: number
+  status: 'streaming' | 'done' | 'error'
 }

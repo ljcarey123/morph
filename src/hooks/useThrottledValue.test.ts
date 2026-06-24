@@ -17,24 +17,30 @@ describe('useThrottledValue', () => {
     expect(result.current).toBe('a')
   })
 
-  it('buffers updates until the interval elapses', () => {
+  it('flushes the first update immediately, then buffers later updates until the interval elapses', () => {
     const { result, rerender } = renderHook(
       ({ value }: { value: string }) => useThrottledValue(value, 10_000, false),
       { initialProps: { value: 'a' } },
     )
 
     rerender({ value: 'b' })
-    expect(result.current).toBe('a')
+    act(() => {
+      vi.advanceTimersByTime(0)
+    })
+    expect(result.current).toBe('b')
+
+    rerender({ value: 'c' })
+    expect(result.current).toBe('b')
 
     act(() => {
       vi.advanceTimersByTime(9_999)
     })
-    expect(result.current).toBe('a')
+    expect(result.current).toBe('b')
 
     act(() => {
       vi.advanceTimersByTime(1)
     })
-    expect(result.current).toBe('b')
+    expect(result.current).toBe('c')
   })
 
   it('flushes promptly when flushNow becomes true', () => {

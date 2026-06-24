@@ -5,8 +5,9 @@ import { useNotesStore } from '@/store/useNotesStore'
 
 export function useGenerativeUI(noteId: string) {
   const userApiKey = useNotesStore((state) => state.userApiKey)
-  const addGeneratedTab = useNotesStore((state) => state.addGeneratedTab)
-  const directionRef = useRef('')
+  const addPendingTab = useNotesStore((state) => state.addPendingTab)
+  const patchGeneratedTab = useNotesStore((state) => state.patchGeneratedTab)
+  const tabIdRef = useRef<string | null>(null)
 
   const {
     object: partialUI,
@@ -20,22 +21,41 @@ export function useGenerativeUI(noteId: string) {
       'x-user-api-key': userApiKey ?? '',
     }),
     onFinish: ({ object }) => {
-      if (!object) return
-      addGeneratedTab(noteId, {
-        title: directionRef.current,
+      const tabId = tabIdRef.current
+      if (!tabId || !object) return
+      patchGeneratedTab(noteId, tabId, {
         uiType: object.ui_type,
         code: object.code,
         explanation: object.explanation,
         suggestedActions: object.suggested_actions,
-        direction: directionRef.current,
+        status: 'done',
+      })
+    },
+    onError: (caught) => {
+      const tabId = tabIdRef.current
+      if (!tabId) return
+      patchGeneratedTab(noteId, tabId, {
+        explanation: caught.message || 'Generation failed.',
+        status: 'error',
       })
     },
   })
 
   const generate = (content: string, direction: string, previousCode?: string): void => {
-    directionRef.current = direction
+    tabIdRef.current = addPendingTab(noteId, direction, previousCode)
     submit({ content, direction, previousCode })
   }
 
-  return { partialUI, generate, isLoading, error }
+  const retry = (
+    tabId: string,
+    content: string,
+    direction: string,
+    previousCode?: string,
+  ): void => {
+    tabIdRef.current = tabId
+    patchGeneratedTab(noteId, tabId, { status: 'streaming', explanation: '' })
+    submit({ content, direction, previousCode })
+  }
+
+  return { partialUI, generate, retry, isLoading, error }
 }

@@ -9,14 +9,28 @@ interface NoteEditorProps {
 export function NoteEditor({ noteId }: NoteEditorProps) {
   const note = useNotesStore((state) => state.notes[noteId])
   const updateNoteContent = useNotesStore((state) => state.updateNoteContent)
+  const updateNoteTitle = useNotesStore((state) => state.updateNoteTitle)
   const [isPanelOpen, setIsPanelOpen] = useState(false)
 
   if (!note) return null
 
   return (
     <div className="flex h-full flex-1 flex-col gap-4 p-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-medium text-zinc-100">{note.title}</h2>
+      <div className="flex items-center justify-between gap-2">
+        <input
+          type="text"
+          value={note.title}
+          onChange={(event) => {
+            updateNoteTitle(noteId, event.target.value)
+          }}
+          onBlur={(event) => {
+            if (event.target.value.trim().length === 0) {
+              updateNoteTitle(noteId, 'Untitled note')
+            }
+          }}
+          placeholder="Untitled note"
+          className="flex-1 truncate rounded bg-transparent text-lg font-medium text-zinc-100 outline-none focus:bg-zinc-900"
+        />
         <button
           type="button"
           onClick={() => {
