@@ -4,12 +4,11 @@ import type { SuggestOptions } from '@/schemas/suggestOptions'
 
 export function useSuggestOptions() {
   const userApiKey = useNotesStore((state) => state.userApiKey)
-  const [options, setOptions] = useState<SuggestOptions['options']>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<Error | undefined>(undefined)
 
   const fetchOptions = useCallback(
-    async (content: string): Promise<void> => {
+    async (content: string): Promise<SuggestOptions['options'] | undefined> => {
       setIsLoading(true)
       setError(undefined)
       try {
@@ -25,9 +24,10 @@ export function useSuggestOptions() {
           throw new Error(await response.text())
         }
         const data = (await response.json()) as SuggestOptions
-        setOptions(data.options)
+        return data.options
       } catch (caught) {
         setError(caught instanceof Error ? caught : new Error('Failed to fetch suggestions'))
+        return undefined
       } finally {
         setIsLoading(false)
       }
@@ -35,5 +35,5 @@ export function useSuggestOptions() {
     [userApiKey],
   )
 
-  return { options, fetchOptions, isLoading, error }
+  return { fetchOptions, isLoading, error }
 }

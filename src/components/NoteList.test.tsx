@@ -21,6 +21,7 @@ describe('NoteList', () => {
           updatedAt: 1,
           tabs: [],
           activeTabId: null,
+          suggestedOptions: [],
         },
         b: {
           id: 'b',
@@ -30,6 +31,7 @@ describe('NoteList', () => {
           updatedAt: 2,
           tabs: [],
           activeTabId: null,
+          suggestedOptions: [],
         },
       },
     })
@@ -60,6 +62,7 @@ describe('NoteList', () => {
           updatedAt: 1,
           tabs: [],
           activeTabId: null,
+          suggestedOptions: [],
         },
       },
     })
@@ -82,6 +85,7 @@ describe('NoteList', () => {
           updatedAt: 1,
           tabs: [],
           activeTabId: null,
+          suggestedOptions: [],
         },
       },
     })

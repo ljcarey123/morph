@@ -23,6 +23,7 @@ describe('NoteEditor', () => {
           updatedAt: 1,
           tabs: [],
           activeTabId: null,
+          suggestedOptions: [],
         },
       },
       activeNoteId: 'a',
@@ -79,6 +80,7 @@ describe('NoteEditor', () => {
           updatedAt: 1,
           tabs: [],
           activeTabId: null,
+          suggestedOptions: [],
         },
       },
     })

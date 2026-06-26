@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { GeneratedUITab, Note } from '@/types/note'
+import type { SuggestOptions } from '@/schemas/suggestOptions'
 
 interface NotesState {
   notes: Record<string, Note>
@@ -20,6 +21,7 @@ interface NotesState {
   ) => void
   removeTab: (id: string, tabId: string) => void
   setActiveTabId: (id: string, tabId: string) => void
+  setSuggestedOptions: (id: string, options: SuggestOptions['options']) => void
 }
 
 export const useNotesStore = create<NotesState>()(
@@ -40,6 +42,7 @@ export const useNotesStore = create<NotesState>()(
           updatedAt: now,
           tabs: [],
           activeTabId: null,
+          suggestedOptions: [],
         }
         set((state) => ({
           notes: { ...state.notes, [id]: note },
@@ -104,6 +107,7 @@ export const useNotesStore = create<NotesState>()(
             suggestedActions: [],
             direction,
             previousCode,
+            mode: 'branch',
             createdAt: Date.now(),
             status: 'streaming',
           }
@@ -167,7 +171,20 @@ export const useNotesStore = create<NotesState>()(
           }
         })
       },
+
+      setSuggestedOptions: (id, options) => {
+        set((state) => {
+          const note = state.notes[id]
+          if (!note) return state
+          return {
+            notes: {
+              ...state.notes,
+              [id]: { ...note, suggestedOptions: options },
+            },
+          }
+        })
+      },
     }),
-    { name: 'morph-notes-store-v3' },
+    { name: 'morph-notes-store-v4' },
   ),
 )

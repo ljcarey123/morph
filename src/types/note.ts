@@ -1,3 +1,5 @@
+import type { SuggestOptions } from '@/schemas/suggestOptions'
+
 export interface Note {
   id: string
   title: string
@@ -6,6 +8,7 @@ export interface Note {
   updatedAt: number
   tabs: GeneratedUITab[]
   activeTabId: string | null
+  suggestedOptions: SuggestOptions['options']
 }
 
 export interface GeneratedUITab {
@@ -17,6 +20,7 @@ export interface GeneratedUITab {
   suggestedActions: string[]
   direction: string
   previousCode?: string
+  mode?: 'branch' | 'edit'
   createdAt: number
   status: 'streaming' | 'done' | 'error'
 }

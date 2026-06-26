@@ -95,6 +95,58 @@ describe('POST /api/generate-ui', () => {
     const callArgs = streamTextMock.mock.calls[0]?.[0] as { prompt: string }
     expect(callArgs.prompt).toContain('Make it blue')
     expect(callArgs.prompt).toContain('<div class="red"></div>')
+    expect(callArgs.prompt).toContain('Mode: branch')
+    expect(callArgs.prompt).toContain('Previous code to correct or expand on')
+  })
+
+  it('frames the prompt as a targeted refinement when mode is edit', async () => {
+    streamTextMock.mockReturnValue({
+      toTextStreamResponse: () => new Response('stream-body'),
+    })
+
+    const req = new Request('http://localhost/api/generate-ui', {
+      method: 'POST',
+      headers: { 'x-user-api-key': 'user-supplied-key' },
+      body: JSON.stringify({
+        content: 'note text',
+        direction: 'Make it blue',
+        previousCode: '<div class="red"></div>',
+        mode: 'edit',
+      }),
+    })
+
+    await handler(req)
+
+    const callArgs = streamTextMock.mock.calls[0]?.[0] as { prompt: string; system: string }
+    expect(callArgs.prompt).toContain('Mode: edit')
+    expect(callArgs.prompt).toContain('Existing view to refine')
+    expect(callArgs.prompt).not.toContain('Previous code to correct or expand on')
+    expect(callArgs.system).toContain('complete, self-contained markup for the ENTIRE view')
+    expect(callArgs.system).toContain(
+      'Never drop, blank out, collapse, or replace untouched sections',
+    )
+  })
+
+  it('mandates stable ids on generated elements and explains the edit-mode patch option', async () => {
+    streamTextMock.mockReturnValue({
+      toTextStreamResponse: () => new Response('stream-body'),
+    })
+
+    const req = new Request('http://localhost/api/generate-ui', {
+      method: 'POST',
+      headers: { 'x-user-api-key': 'user-supplied-key' },
+      body: JSON.stringify({ content: 'note text', direction: 'Timeline' }),
+    })
+
+    await handler(req)
+
+    const callArgs = streamTextMock.mock.calls[0]?.[0] as { system: string }
+    expect(callArgs.system).toContain('stable, descriptive, kebab-case id attribute')
+    expect(callArgs.system).toContain('target_id')
+    expect(callArgs.system).toContain('replacement_html')
+    expect(callArgs.system).toContain(
+      'Never return both a "code" document and a "target_id"/"replacement_html" patch',
+    )
   })
 
   it('never logs or echoes the supplied api key in the response', async () => {

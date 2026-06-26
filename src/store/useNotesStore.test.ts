@@ -93,6 +93,7 @@ describe('useNotesStore', () => {
       explanation: '',
       suggestedActions: [],
       direction: 'Timeline',
+      mode: 'branch',
       status: 'streaming',
     })
     expect(note?.activeTabId).toBe(tabId)
@@ -174,6 +175,21 @@ describe('useNotesStore', () => {
 
   it('does nothing when setting the active tab for a note that does not exist', () => {
     useNotesStore.getState().setActiveTabId('missing-id', 'tab-id')
+
+    expect(useNotesStore.getState().notes).toEqual({})
+  })
+
+  it('sets the suggested options for a note', () => {
+    const id = useNotesStore.getState().createNote()
+    const options = [{ label: 'Comparison table', description: 'Side-by-side comparison.' }]
+
+    useNotesStore.getState().setSuggestedOptions(id, options)
+
+    expect(useNotesStore.getState().notes[id]?.suggestedOptions).toEqual(options)
+  })
+
+  it('does nothing when setting suggested options for a note that does not exist', () => {
+    useNotesStore.getState().setSuggestedOptions('missing-id', [])
 
     expect(useNotesStore.getState().notes).toEqual({})
   })
