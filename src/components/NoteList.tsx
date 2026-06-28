@@ -10,11 +10,11 @@ export function NoteList() {
   const noteList = Object.values(notes).sort((a, b) => b.updatedAt - a.updatedAt)
 
   return (
-    <div className="flex h-full w-64 flex-col border-r border-zinc-800">
+    <div className="flex h-full w-64 shrink-0 flex-col border-r border-stone-800">
       <button
         type="button"
         onClick={() => createNote()}
-        className="m-2 rounded border border-zinc-800 px-3 py-2 text-sm text-zinc-100 hover:bg-zinc-800"
+        className="m-2 rounded border border-stone-800 px-3 py-2 text-sm text-stone-100 hover:bg-stone-800"
       >
         + New note
       </button>
@@ -25,8 +25,8 @@ export function NoteList() {
             key={note.id}
             className={`flex items-center justify-between px-3 py-2 text-sm ${
               note.id === activeNoteId
-                ? 'bg-violet-600/20 text-zinc-100'
-                : 'text-zinc-400 hover:bg-zinc-800'
+                ? 'bg-amber-500/15 text-stone-100'
+                : 'text-stone-400 hover:bg-stone-800'
             }`}
           >
             <button
@@ -44,7 +44,7 @@ export function NoteList() {
                 deleteNote(note.id)
               }}
               aria-label={`Delete ${note.title}`}
-              className="ml-2 shrink-0 text-zinc-500 hover:text-red-400"
+              className="ml-2 shrink-0 text-stone-500 hover:text-red-400"
             >
               ✕
             </button>

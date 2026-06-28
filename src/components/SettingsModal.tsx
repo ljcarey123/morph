@@ -12,11 +12,11 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/60">
-      <div className="w-96 rounded border border-zinc-800 bg-zinc-900 p-4">
-        <h2 className="mb-3 text-sm font-medium text-zinc-100">Settings</h2>
+    <div className="fixed inset-0 flex items-center justify-center bg-stone-950/70">
+      <div className="w-96 rounded border border-stone-800 bg-stone-900 p-4">
+        <h2 className="mb-3 text-sm font-medium text-stone-100">Settings</h2>
 
-        <label className="mb-1 block text-xs text-zinc-400" htmlFor="api-key">
+        <label className="mb-1 block text-xs text-stone-400" htmlFor="api-key">
           Gemini API key
         </label>
         <input
@@ -27,9 +27,9 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             setApiKey(event.target.value || null)
           }}
           placeholder="Paste your API key"
-          className="mb-4 w-full rounded border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none"
+          className="mb-4 w-full rounded border border-stone-800 bg-stone-950 px-3 py-2 text-sm text-stone-100 outline-none"
         />
-        <p className="mb-4 text-xs text-zinc-500">
+        <p className="mb-4 text-xs text-stone-500">
           Stored only in your browser, sent with each generation request, never persisted
           server-side.
         </p>
@@ -37,7 +37,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         <button
           type="button"
           onClick={onClose}
-          className="w-full rounded bg-violet-600 px-3 py-2 text-sm font-medium text-white"
+          className="w-full rounded bg-amber-500 px-3 py-2 text-sm font-medium text-stone-950 hover:bg-amber-400"
         >
           Done
         </button>

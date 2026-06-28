@@ -121,13 +121,14 @@ describe('POST /api/generate-ui', () => {
     expect(callArgs.prompt).toContain('Mode: edit')
     expect(callArgs.prompt).toContain('Existing view to refine')
     expect(callArgs.prompt).not.toContain('Previous code to correct or expand on')
-    expect(callArgs.system).toContain('complete, self-contained markup for the ENTIRE view')
+    expect(callArgs.system).toContain('Always respond with a patch')
     expect(callArgs.system).toContain(
       'Never drop, blank out, collapse, or replace untouched sections',
     )
+    expect(callArgs.system).not.toContain('complete, self-contained markup for the ENTIRE view')
   })
 
-  it('mandates stable ids on generated elements and explains the edit-mode patch option', async () => {
+  it('uses a dedicated branch-mode system prompt that never mentions the edit patch shape', async () => {
     streamTextMock.mockReturnValue({
       toTextStreamResponse: () => new Response('stream-body'),
     })
@@ -142,11 +143,28 @@ describe('POST /api/generate-ui', () => {
 
     const callArgs = streamTextMock.mock.calls[0]?.[0] as { system: string }
     expect(callArgs.system).toContain('stable, descriptive, kebab-case id attribute')
+    expect(callArgs.system).toContain('complete, self-contained markup for the ENTIRE view')
+    expect(callArgs.system).not.toContain('Always respond with a patch')
+    expect(callArgs.system).not.toContain('SMALLEST element')
+  })
+
+  it('mandates stable ids on generated elements and explains the edit-mode patch option', async () => {
+    streamTextMock.mockReturnValue({
+      toTextStreamResponse: () => new Response('stream-body'),
+    })
+
+    const req = new Request('http://localhost/api/generate-ui', {
+      method: 'POST',
+      headers: { 'x-user-api-key': 'user-supplied-key' },
+      body: JSON.stringify({ content: 'note text', direction: 'Make it blue', mode: 'edit' }),
+    })
+
+    await handler(req)
+
+    const callArgs = streamTextMock.mock.calls[0]?.[0] as { system: string }
+    expect(callArgs.system).toContain('stable, descriptive, kebab-case id attribute')
     expect(callArgs.system).toContain('target_id')
     expect(callArgs.system).toContain('replacement_html')
-    expect(callArgs.system).toContain(
-      'Never return both a "code" document and a "target_id"/"replacement_html" patch',
-    )
   })
 
   it('never logs or echoes the supplied api key in the response', async () => {
@@ -156,12 +174,44 @@ describe('POST /api/generate-ui', () => {
     const req = new Request('http://localhost/api/generate-ui', {
       method: 'POST',
       headers: { 'x-user-api-key': 'super-secret-key' },
-      body: JSON.stringify({ content: 'note text' }),
+      body: JSON.stringify({ content: 'note text', direction: 'Timeline' }),
     })
 
     const response = await handler(req)
     const bodyText = await response.text()
 
     expect(bodyText).not.toContain('super-secret-key')
+  })
+
+  it('returns 400 when the request body fails validation', async () => {
+    const req = new Request('http://localhost/api/generate-ui', {
+      method: 'POST',
+      headers: { 'x-user-api-key': 'user-supplied-key' },
+      body: JSON.stringify({ content: 'note text' }),
+    })
+
+    const response = await handler(req)
+
+    expect(response.status).toBe(400)
+    expect(streamTextMock).not.toHaveBeenCalled()
+  })
+
+  it('wraps untrusted fields in delimiter tags and warns the model not to follow them', async () => {
+    streamTextMock.mockReturnValue({
+      toTextStreamResponse: () => new Response('stream-body'),
+    })
+
+    const req = new Request('http://localhost/api/generate-ui', {
+      method: 'POST',
+      headers: { 'x-user-api-key': 'user-supplied-key' },
+      body: JSON.stringify({ content: 'note text', direction: 'Timeline' }),
+    })
+
+    await handler(req)
+
+    const callArgs = streamTextMock.mock.calls[0]?.[0] as { prompt: string; system: string }
+    expect(callArgs.prompt).toContain('<note_content>')
+    expect(callArgs.prompt).toContain('<user_direction>')
+    expect(callArgs.system).toContain('untrusted user-provided data')
   })
 })

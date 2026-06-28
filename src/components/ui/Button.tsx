@@ -8,11 +8,11 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary:
-    'rounded bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-40',
+    'rounded bg-amber-500 px-4 py-2 text-sm font-medium text-stone-950 hover:bg-amber-400 disabled:opacity-40',
   ghost:
-    'rounded px-3 py-2 text-sm text-zinc-400 hover:bg-white/10 hover:text-zinc-100 disabled:opacity-40',
-  icon: 'rounded p-1 text-zinc-400 hover:bg-white/10 hover:text-zinc-100 disabled:opacity-40',
-  chip: 'rounded border border-white/10 bg-white/5 px-3 py-2 text-left text-sm text-zinc-100 hover:bg-white/10 disabled:opacity-40',
+    'rounded px-3 py-2 text-sm text-stone-400 hover:bg-white/10 hover:text-stone-100 disabled:opacity-40',
+  icon: 'rounded p-1 text-stone-400 hover:bg-white/10 hover:text-stone-100 disabled:opacity-40',
+  chip: 'rounded-full border border-amber-200/20 bg-gradient-to-b from-white/15 to-white/5 px-3 py-1.5 text-left text-sm text-stone-100 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.15)] backdrop-blur-sm transition hover:from-amber-300/20 hover:to-amber-200/5 hover:text-amber-100 disabled:opacity-40',
 }
 
 export function Button({

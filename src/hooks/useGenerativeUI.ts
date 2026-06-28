@@ -3,11 +3,13 @@ import { experimental_useObject as useObject } from '@ai-sdk/react'
 import { generativeUiSchema } from '@/schemas/generativeUi'
 import { useNotesStore } from '@/store/useNotesStore'
 import { HtmlPatcher } from '@/services/HtmlPatcher'
+import type { GeneratedUITab } from '@/types/note'
 
 export function useGenerativeUI(noteId: string) {
   const userApiKey = useNotesStore((state) => state.userApiKey)
   const addPendingTab = useNotesStore((state) => state.addPendingTab)
   const patchGeneratedTab = useNotesStore((state) => state.patchGeneratedTab)
+  const removeTab = useNotesStore((state) => state.removeTab)
   const tabIdRef = useRef<string | null>(null)
   const modeRef = useRef<'branch' | 'edit'>('branch')
   const previousCodeRef = useRef<string | undefined>(undefined)
@@ -35,7 +37,7 @@ export function useGenerativeUI(noteId: string) {
         )
         if (patched === null) {
           patchGeneratedTab(noteId, tabId, {
-            explanation: `Could not find an element with id "${object.target_id}" to edit — try again or describe the change differently.`,
+            error: `Could not find an element with id "${object.target_id}" to edit — try again or describe the change differently.`,
             status: 'error',
           })
           return
@@ -45,6 +47,7 @@ export function useGenerativeUI(noteId: string) {
           explanation: object.explanation,
           suggestedActions: object.suggested_actions,
           status: 'done',
+          error: undefined,
         })
         return
       }
@@ -56,6 +59,7 @@ export function useGenerativeUI(noteId: string) {
           explanation: object.explanation,
           suggestedActions: object.suggested_actions,
           status: 'done',
+          error: undefined,
         })
         return
       }
@@ -65,7 +69,7 @@ export function useGenerativeUI(noteId: string) {
         object,
       )
       patchGeneratedTab(noteId, tabId, {
-        explanation: object.explanation || 'Generation failed.',
+        error: 'The model returned an incomplete response — try again.',
         status: 'error',
       })
     },
@@ -73,7 +77,7 @@ export function useGenerativeUI(noteId: string) {
       const tabId = tabIdRef.current
       if (!tabId) return
       patchGeneratedTab(noteId, tabId, {
-        explanation: caught.message || 'Generation failed.',
+        error: caught.message || 'Generation failed.',
         status: 'error',
       })
     },
@@ -96,7 +100,7 @@ export function useGenerativeUI(noteId: string) {
     tabIdRef.current = tabId
     modeRef.current = mode
     previousCodeRef.current = previousCode
-    patchGeneratedTab(noteId, tabId, { status: 'streaming', explanation: '' })
+    patchGeneratedTab(noteId, tabId, { status: 'streaming', error: undefined })
     submit({ content, direction, previousCode, mode })
   }
 
@@ -109,9 +113,23 @@ export function useGenerativeUI(noteId: string) {
     tabIdRef.current = tabId
     modeRef.current = 'edit'
     previousCodeRef.current = previousCode
-    patchGeneratedTab(noteId, tabId, { direction, previousCode, mode: 'edit', status: 'streaming' })
+    patchGeneratedTab(noteId, tabId, {
+      direction,
+      previousCode,
+      mode: 'edit',
+      status: 'streaming',
+      error: undefined,
+    })
     submit({ content, direction, previousCode, mode: 'edit' })
   }
 
-  return { partialUI, generate, retry, editTab, isLoading, error }
+  const cancelError = (tab: GeneratedUITab): void => {
+    if (tab.code) {
+      patchGeneratedTab(noteId, tab.id, { status: 'done', error: undefined })
+    } else {
+      removeTab(noteId, tab.id)
+    }
+  }
+
+  return { partialUI, generate, retry, editTab, cancelError, isLoading, error }
 }

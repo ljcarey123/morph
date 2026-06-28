@@ -173,6 +173,16 @@ describe('useNotesStore', () => {
     expect(useNotesStore.getState().notes[id]?.activeTabId).toBe(firstTab?.id)
   })
 
+  it('switches the active tab back to the note itself via null', () => {
+    const id = useNotesStore.getState().createNote()
+    const tabId = useNotesStore.getState().addPendingTab(id, 'Timeline')
+    useNotesStore.getState().setActiveTabId(id, tabId)
+
+    useNotesStore.getState().setActiveTabId(id, null)
+
+    expect(useNotesStore.getState().notes[id]?.activeTabId).toBeNull()
+  })
+
   it('does nothing when setting the active tab for a note that does not exist', () => {
     useNotesStore.getState().setActiveTabId('missing-id', 'tab-id')
 

@@ -20,7 +20,7 @@ interface NotesState {
     patch: Partial<Omit<GeneratedUITab, 'id' | 'createdAt'>>,
   ) => void
   removeTab: (id: string, tabId: string) => void
-  setActiveTabId: (id: string, tabId: string) => void
+  setActiveTabId: (id: string, tabId: string | null) => void
   setSuggestedOptions: (id: string, options: SuggestOptions['options']) => void
 }
 

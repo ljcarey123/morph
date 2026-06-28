@@ -79,7 +79,7 @@ describe('useGenerativeUI', () => {
 
     const tab = useNotesStore.getState().notes[noteId]?.tabs[0]
     expect(tab?.status).toBe('error')
-    expect(tab?.explanation).toContain('Could not find an element with id "missing-id"')
+    expect(tab?.error).toContain('Could not find an element with id "missing-id"')
     expect(tab?.code).toBe('<div id="header"><h1>Old</h1></div>')
   })
 
@@ -106,6 +106,78 @@ describe('useGenerativeUI', () => {
     expect(tab?.explanation).toBe('redone')
     expect(tab?.suggestedActions).toEqual(['a'])
     expect(tab?.status).toBe('done')
+  })
+
+  it('marks the tab as errored with a clear message when the response matches neither shape', () => {
+    const { result } = renderHook(() => useGenerativeUI(noteId))
+
+    act(() => {
+      result.current.editTab(tabId, 'note body', 'add a big new section', '<div id="card"></div>')
+    })
+    act(() => {
+      capturedOnFinish({
+        object: {
+          explanation: 'A long description of an intended change, not an error message.',
+          ui_type: 'html_snippet',
+          target_id: 'card',
+          suggested_actions: [],
+        },
+      })
+    })
+
+    const tab = useNotesStore.getState().notes[noteId]?.tabs[0]
+    expect(tab?.status).toBe('error')
+    expect(tab?.error).toBe('The model returned an incomplete response — try again.')
+    expect(tab?.explanation).not.toContain('A long description of an intended change')
+    expect(tab?.code).toBe('<div id="header"><h1>Old</h1></div>')
+  })
+
+  it('cancelError reverts an errored edit to done and clears the error, keeping the prior code', () => {
+    const { result } = renderHook(() => useGenerativeUI(noteId))
+
+    act(() => {
+      result.current.editTab(tabId, 'note body', 'tweak it', '<div id="header"></div>')
+    })
+    act(() => {
+      capturedOnFinish({
+        object: {
+          explanation: 'irrelevant',
+          target_id: 'missing-id',
+          replacement_html: '<div id="missing-id"></div>',
+          suggested_actions: [],
+        },
+      })
+    })
+
+    const erroredTab = useNotesStore.getState().notes[noteId]?.tabs[0]
+    expect(erroredTab?.status).toBe('error')
+
+    act(() => {
+      if (!erroredTab) throw new Error('expected tab to exist')
+      result.current.cancelError(erroredTab)
+    })
+
+    const tab = useNotesStore.getState().notes[noteId]?.tabs[0]
+    expect(tab?.status).toBe('done')
+    expect(tab?.error).toBeUndefined()
+    expect(tab?.code).toBe('<div id="header"><h1>Old</h1></div>')
+  })
+
+  it('cancelError removes the tab entirely when there is no previous content to fall back to', () => {
+    const newTabId = useNotesStore.getState().addPendingTab(noteId, 'Brand new')
+    useNotesStore.getState().patchGeneratedTab(noteId, newTabId, {
+      error: 'The model returned an incomplete response — try again.',
+      status: 'error',
+    })
+    const { result } = renderHook(() => useGenerativeUI(noteId))
+    const tab = useNotesStore.getState().notes[noteId]?.tabs.find((t) => t.id === newTabId)
+
+    act(() => {
+      if (!tab) throw new Error('expected tab to exist')
+      result.current.cancelError(tab)
+    })
+
+    expect(useNotesStore.getState().notes[noteId]?.tabs.some((t) => t.id === newTabId)).toBe(false)
   })
 
   it('forwards the stored tab mode when retrying, so a retried edit can still patch', () => {

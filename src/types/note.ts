@@ -23,4 +23,5 @@ export interface GeneratedUITab {
   mode?: 'branch' | 'edit'
   createdAt: number
   status: 'streaming' | 'done' | 'error'
+  error?: string
 }
