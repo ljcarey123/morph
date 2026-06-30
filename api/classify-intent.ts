@@ -35,6 +35,11 @@ export default async function handler(req: Request): Promise<Response> {
   }
   const { message, currentArtifact } = parsed.data
 
+  console.debug('[api/classify-intent] request', {
+    messageLength: message.length,
+    currentArtifactLength: currentArtifact.length,
+  })
+
   const google = createGoogleGenerativeAI({ apiKey })
 
   const sanitizedMessage = wrapInTag(PROMPT_TAGS.userMessage, sanitizeText(message, 500))
@@ -49,6 +54,11 @@ export default async function handler(req: Request): Promise<Response> {
     system: SYSTEM_PROMPT,
     prompt,
     output: Output.object({ schema: classifyIntentSchema }),
+  })
+
+  console.debug('[api/classify-intent] result', {
+    action: result.output.action,
+    finishReason: result.finishReason,
   })
 
   return Response.json(result.output)

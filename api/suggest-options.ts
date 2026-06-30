@@ -30,6 +30,8 @@ export default async function handler(req: Request): Promise<Response> {
   }
   const { content } = parsed.data
 
+  console.debug('[api/suggest-options] request', { contentLength: content.length })
+
   const google = createGoogleGenerativeAI({ apiKey })
 
   const sanitizedContent = wrapInTag(PROMPT_TAGS.noteContent, sanitizeText(content, 20000))
@@ -39,6 +41,11 @@ export default async function handler(req: Request): Promise<Response> {
     system: SYSTEM_PROMPT,
     prompt: sanitizedContent,
     output: Output.object({ schema: suggestOptionsSchema }),
+  })
+
+  console.debug('[api/suggest-options] result', {
+    optionCount: result.output.options.length,
+    finishReason: result.finishReason,
   })
 
   return Response.json(result.output)

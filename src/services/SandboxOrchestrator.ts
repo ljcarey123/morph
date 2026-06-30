@@ -1,6 +1,14 @@
+import { HtmlSanitizer } from './HtmlSanitizer'
+import { SANDBOX_RUNTIME_SCRIPT } from '@/sandbox-runtime/runtimeScript'
+
 export const SandboxOrchestrator = {
   compileHtmlTemplate(rawHtml: string | undefined, uiType: string): string {
-    const safeHtml = rawHtml ?? ''
+    const safeHtml = HtmlSanitizer.sanitize(rawHtml ?? '')
+    console.debug('[SandboxOrchestrator] compileHtmlTemplate', {
+      uiType,
+      rawHtmlLength: rawHtml?.length ?? 0,
+      safeHtmlLength: safeHtml.length,
+    })
     const body =
       uiType === 'svg_diagram'
         ? `<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;">${safeHtml}</div>`
@@ -10,14 +18,12 @@ export const SandboxOrchestrator = {
 <html>
   <head>
     <meta charset="utf-8" />
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
       :root { color-scheme: light; }
       body { margin: 0; min-height: 100vh; background: #ffffff; color: #111827; font-family: system-ui, -apple-system, sans-serif; }
-      button, a, input, select, textarea, [onclick] { pointer-events: none; cursor: default; }
     </style>
   </head>
-  <body>${body}</body>
+  <body>${body}<script>${SANDBOX_RUNTIME_SCRIPT}</script></body>
 </html>`
   },
 }

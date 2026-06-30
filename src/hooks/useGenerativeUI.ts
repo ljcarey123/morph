@@ -27,6 +27,14 @@ export function useGenerativeUI(noteId: string) {
     }),
     onFinish: ({ object }) => {
       const tabId = tabIdRef.current
+      console.debug('[useGenerativeUI] onFinish', {
+        tabId,
+        mode: modeRef.current,
+        hasObject: Boolean(object),
+        codeLength: object?.code?.length ?? 0,
+        targetId: object?.target_id,
+        replacementHtmlLength: object?.replacement_html?.length ?? 0,
+      })
       if (!tabId || !object) return
 
       if (modeRef.current === 'edit' && object.target_id && object.replacement_html) {
@@ -36,6 +44,10 @@ export function useGenerativeUI(noteId: string) {
           object.replacement_html,
         )
         if (patched === null) {
+          console.debug('[useGenerativeUI] patch target not found', {
+            tabId,
+            targetId: object.target_id,
+          })
           patchGeneratedTab(noteId, tabId, {
             error: `Could not find an element with id "${object.target_id}" to edit — try again or describe the change differently.`,
             status: 'error',
@@ -75,6 +87,7 @@ export function useGenerativeUI(noteId: string) {
     },
     onError: (caught) => {
       const tabId = tabIdRef.current
+      console.debug('[useGenerativeUI] onError', { tabId, message: caught.message })
       if (!tabId) return
       patchGeneratedTab(noteId, tabId, {
         error: caught.message || 'Generation failed.',
@@ -87,6 +100,11 @@ export function useGenerativeUI(noteId: string) {
     tabIdRef.current = addPendingTab(noteId, direction, previousCode)
     modeRef.current = 'branch'
     previousCodeRef.current = previousCode
+    console.debug('[useGenerativeUI] generate', {
+      tabId: tabIdRef.current,
+      direction,
+      hasPreviousCode: Boolean(previousCode),
+    })
     submit({ content, direction, previousCode, mode: 'branch' })
   }
 
@@ -100,6 +118,7 @@ export function useGenerativeUI(noteId: string) {
     tabIdRef.current = tabId
     modeRef.current = mode
     previousCodeRef.current = previousCode
+    console.debug('[useGenerativeUI] retry', { tabId, mode, direction })
     patchGeneratedTab(noteId, tabId, { status: 'streaming', error: undefined })
     submit({ content, direction, previousCode, mode })
   }
@@ -113,6 +132,7 @@ export function useGenerativeUI(noteId: string) {
     tabIdRef.current = tabId
     modeRef.current = 'edit'
     previousCodeRef.current = previousCode
+    console.debug('[useGenerativeUI] editTab', { tabId, direction })
     patchGeneratedTab(noteId, tabId, {
       direction,
       previousCode,

@@ -24,4 +24,5 @@ export interface GeneratedUITab {
   createdAt: number
   status: 'streaming' | 'done' | 'error'
   error?: string
+  componentState?: Record<string, string | number | boolean>
 }

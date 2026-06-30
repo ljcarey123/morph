@@ -14,6 +14,10 @@ export function useClassifyIntent() {
     ): Promise<ClassifyIntent['action'] | undefined> => {
       setIsLoading(true)
       setError(undefined)
+      console.debug('[useClassifyIntent] fetchAction', {
+        messageLength: message.length,
+        currentArtifactLength: currentArtifact.length,
+      })
       try {
         const response = await fetch('/api/classify-intent', {
           method: 'POST',
@@ -27,9 +31,12 @@ export function useClassifyIntent() {
           throw new Error(await response.text())
         }
         const data = (await response.json()) as ClassifyIntent
+        console.debug('[useClassifyIntent] received', { action: data.action })
         return data.action
       } catch (caught) {
-        setError(caught instanceof Error ? caught : new Error('Failed to classify intent'))
+        const err = caught instanceof Error ? caught : new Error('Failed to classify intent')
+        console.debug('[useClassifyIntent] error', { message: err.message })
+        setError(err)
         return undefined
       } finally {
         setIsLoading(false)

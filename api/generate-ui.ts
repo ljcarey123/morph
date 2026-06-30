@@ -1,7 +1,8 @@
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { Output, streamText } from 'ai'
 import { z } from 'zod'
-import { generativeUiSchema } from '../src/schemas/generativeUi'
+import { branchOutputSchema, editOutputSchema } from '../src/schemas/generativeUi'
+import { COMPONENT_REGISTRY } from '../src/sandbox-runtime/registry'
 import { PROMPT_TAGS, UNTRUSTED_DATA_NOTICE, sanitizeText, wrapInTag } from './_shared/sanitize'
 
 export const config = { runtime: 'edge' }
@@ -12,12 +13,33 @@ const ROLE_INTRO =
   'explanation of your reasoning, and up to 3 suggested next actions. Return clean HTML or SVG ' +
   'only — no markdown code fences.'
 
+const COMPONENT_DOCS = COMPONENT_REGISTRY.map((component) => {
+  const attrs = component.attributes
+    .map((attribute) => `    - ${attribute.name} (${attribute.type}): ${attribute.description}`)
+    .join('\n')
+  return (
+    `  ${component.tag}: ${component.description}\n` +
+    (attrs ? `${attrs}\n` : '') +
+    `    Example:\n      ${component.example.split('\n').join('\n      ')}`
+  )
+}).join('\n')
+
 const RENDERING_RULES = [
-  'No interactivity: never generate <script> tags, onclick/onchange/etc. attributes, or <form> ' +
-    'submissions, and never draw buttons, links, or controls that imply something will happen ' +
-    'on click. This renders inside a sandboxed iframe with no JavaScript execution — none of it ' +
-    'can run, and it will mislead the user. Anything actionable belongs in suggested_actions ' +
-    'instead, which renders as real, clickable controls outside the sandbox.',
+  'No scripting of your own: never generate <script> tags, onclick/onchange/etc. attributes, ' +
+    'javascript: URLs, or <form> submissions — anything like this is stripped before render and ' +
+    'will simply be missing, misleading the user. The ONLY way to make something interactive is ' +
+    'the fixed set of pre-built components below; everything else you draw (including plain ' +
+    '<button>/<a> elements) must be purely static, since clicking it does nothing. Anything that ' +
+    'should trigger a real action belongs in suggested_actions instead.',
+  'Interactive components: you may use these custom tags freely inside your markup — they are ' +
+    'real, working, pre-built widgets, not placeholders. Wire up their documented data-* child ' +
+    'markers/attributes exactly as shown; everything else about their appearance (colors, ' +
+    'spacing, layout) is yours to style same as any other element:\n' +
+    COMPONENT_DOCS +
+    '\n  Only set "data-state-key" on a component when its value should be remembered across ' +
+    'edits and reloads (e.g. a counter tracking real progress) — give it a stable, descriptive, ' +
+    'kebab-case value, unique within the document, same spirit as element ids below. Leave it ' +
+    'off for purely transient state like which tab happens to be open.',
   'Contrast: always pair every background color with an explicitly contrasting text color on ' +
     'the same element or its container, and vice versa — never rely on browser or inherited ' +
     'defaults for either, since unstyled text can end up invisible against an unexpected ' +
@@ -96,6 +118,14 @@ export default async function handler(req: Request): Promise<Response> {
   }
   const { content, direction, previousCode, mode = 'branch' } = parsed.data
 
+  console.debug('[api/generate-ui] request', {
+    mode,
+    contentLength: content.length,
+    direction,
+    hasPreviousCode: Boolean(previousCode),
+    previousCodeLength: previousCode?.length ?? 0,
+  })
+
   const google = createGoogleGenerativeAI({ apiKey })
 
   const sanitizedContent = wrapInTag(PROMPT_TAGS.noteContent, sanitizeText(content, 20000))
@@ -110,12 +140,34 @@ export default async function handler(req: Request): Promise<Response> {
     ? `Note content:\n${sanitizedContent}\n\nMode: ${mode}\n\nDirection: ${sanitizedDirection}\n\n${previousCodeLabel}:\n${sanitizedPreviousCode}`
     : `Note content:\n${sanitizedContent}\n\nMode: ${mode}\n\nDirection: ${sanitizedDirection}`
 
-  const result = streamText({
-    model: google('gemini-flash-latest'),
-    system: mode === 'edit' ? EDIT_SYSTEM_PROMPT : BRANCH_SYSTEM_PROMPT,
-    prompt,
-    output: Output.object({ schema: generativeUiSchema }),
+  console.debug('[api/generate-ui] calling model', {
+    mode,
+    schema: mode === 'edit' ? 'editOutputSchema' : 'branchOutputSchema',
+    promptLength: prompt.length,
   })
+
+  const result =
+    mode === 'edit'
+      ? streamText({
+          model: google('gemini-flash-latest'),
+          system: EDIT_SYSTEM_PROMPT,
+          prompt,
+          maxOutputTokens: 8192,
+          output: Output.object({ schema: editOutputSchema }),
+          onFinish: ({ finishReason, usage }) => {
+            console.debug('[api/generate-ui] stream finished', { mode, finishReason, usage })
+          },
+        })
+      : streamText({
+          model: google('gemini-flash-latest'),
+          system: BRANCH_SYSTEM_PROMPT,
+          prompt,
+          maxOutputTokens: 8192,
+          output: Output.object({ schema: branchOutputSchema }),
+          onFinish: ({ finishReason, usage }) => {
+            console.debug('[api/generate-ui] stream finished', { mode, finishReason, usage })
+          },
+        })
 
   return result.toTextStreamResponse()
 }

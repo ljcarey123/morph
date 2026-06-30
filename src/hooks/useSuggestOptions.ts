@@ -11,6 +11,7 @@ export function useSuggestOptions() {
     async (content: string): Promise<SuggestOptions['options'] | undefined> => {
       setIsLoading(true)
       setError(undefined)
+      console.debug('[useSuggestOptions] fetchOptions', { contentLength: content.length })
       try {
         const response = await fetch('/api/suggest-options', {
           method: 'POST',
@@ -24,9 +25,12 @@ export function useSuggestOptions() {
           throw new Error(await response.text())
         }
         const data = (await response.json()) as SuggestOptions
+        console.debug('[useSuggestOptions] received', { optionCount: data.options.length })
         return data.options
       } catch (caught) {
-        setError(caught instanceof Error ? caught : new Error('Failed to fetch suggestions'))
+        const err = caught instanceof Error ? caught : new Error('Failed to fetch suggestions')
+        console.debug('[useSuggestOptions] error', { message: err.message })
+        setError(err)
         return undefined
       } finally {
         setIsLoading(false)

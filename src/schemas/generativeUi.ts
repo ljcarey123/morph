@@ -31,3 +31,39 @@ export const generativeUiSchema = z.object({
 })
 
 export type GenerativeUi = z.infer<typeof generativeUiSchema>
+
+// Mode-specific schemas given to the model as its structured-output constraint
+// (api/generate-ui.ts picks one based on request.mode). Unlike the permissive
+// generativeUiSchema above — which has to accept either shape since the client
+// hook parses both modes through one schema — these make the one field each
+// mode actually needs non-optional, so the provider's JSON-schema-constrained
+// generation can't produce a schema-valid response that's missing it.
+export const branchOutputSchema = z.object({
+  explanation: z.string().describe('Architectural analysis or workflow overview of the canvas.'),
+  ui_type: z.enum(['html_snippet', 'svg_diagram']),
+  code: z
+    .string()
+    .min(1)
+    .describe(
+      'Full self-contained HTML or raw SVG document for the entire view. No markdown wrap ' +
+        'strings. Always required in this mode — never omit it, however large or ambitious ' +
+        'the requested view is.',
+    ),
+  suggested_actions: z.array(z.string()).max(3),
+})
+
+export const editOutputSchema = z.object({
+  explanation: z.string().describe('Architectural analysis or workflow overview of the canvas.'),
+  target_id: z
+    .string()
+    .min(1)
+    .describe('The id of the existing element to replace with replacement_html.'),
+  replacement_html: z
+    .string()
+    .min(1)
+    .describe(
+      "Markup to replace the target element with, including that element's own opening tag " +
+        'carrying the same id. Always required alongside target_id in this mode.',
+    ),
+  suggested_actions: z.array(z.string()).max(3),
+})

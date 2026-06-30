@@ -47,6 +47,7 @@ export function NoteWorkspace({ noteId }: NoteWorkspaceProps) {
           <NoteEditor noteId={noteId} />
         ) : (
           <ArtifactView
+            noteId={noteId}
             tab={activeTab}
             code={code}
             uiType={uiType}

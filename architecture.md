@@ -154,3 +154,47 @@ const code = isLoading ? throttled?.code : activeTab?.code;
 />
 
 ```
+
+---
+
+## 6. Future Considerations
+
+### Playwright for end-to-end testing
+
+Current test coverage (vitest + jsdom) is unit/component-level only — nothing
+exercises the actual iframe sandbox, the `postMessage` state bridge, or a
+real generate → render → interact flow in a real browser. Playwright would
+close that gap.
+
+Plan: develop specs interactively against `npm run dev` using the Playwright
+MCP server (driving the browser through Claude Code turn by turn, which is
+also a deliberate way to build the skill), then commit the resulting specs
+as ordinary `@playwright/test` files that run headless in CI. The two modes
+aren't exclusive — MCP for authoring/debugging, `@playwright/test` for
+repeatable runs.
+
+Worth covering once added: a real generation round-trip rendering a
+`morph-tabs`/`morph-toggle` artifact and clicking through it, the
+`data-state-key` persistence surviving a reload, and a forged
+`<script>`/`onclick` in model output confirmed never executing.
+
+### In-browser LLMs for cost reduction
+
+Goal is offloading small, frequent tasks from the Gemini API — not
+replacing `generate-ui`, which needs real reasoning quality to produce long,
+structurally correct, schema-following HTML/SVG.
+
+- **`classify-intent`** is the strongest candidate: called on every chat
+  message, tiny input (message ≤500 chars, artifact summary ≤200 chars),
+  single binary output (`edit`/`create`). This is narrow enough that it
+  likely doesn't need a generative LLM at all — a **Transformers.js**
+  zero-shot-classification pipeline (small quantized model, WASM/WebGPU,
+  cached in IndexedDB after first load, no API key) is a better fit than a
+  chat-style local LLM for a single classification decision.
+- **`suggest-options`** is a weaker fit for now: it reasons over up to 20k
+  chars of note content to propose creative directions, which needs more
+  breadth than small on-device models realistically have today, and it's
+  called far less often (not per keystroke) — leave it on Gemini.
+- Tradeoff to surface in the UI either way: first use downloads and caches a
+  model (tens of MB for a small classifier), so the composer should show a
+  "loading local model…" state rather than appearing to hang.

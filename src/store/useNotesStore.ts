@@ -22,6 +22,7 @@ interface NotesState {
   removeTab: (id: string, tabId: string) => void
   setActiveTabId: (id: string, tabId: string | null) => void
   setSuggestedOptions: (id: string, options: SuggestOptions['options']) => void
+  patchComponentState: (id: string, tabId: string, key: string, value: string | number | boolean) => void
 }
 
 export const useNotesStore = create<NotesState>()(
@@ -96,6 +97,7 @@ export const useNotesStore = create<NotesState>()(
 
       addPendingTab: (id, direction, previousCode) => {
         const tabId = crypto.randomUUID()
+        console.debug('[useNotesStore] addPendingTab', { noteId: id, tabId, direction })
         set((state) => {
           const note = state.notes[id]
           if (!note) return state
@@ -127,6 +129,13 @@ export const useNotesStore = create<NotesState>()(
       },
 
       patchGeneratedTab: (id, tabId, patch) => {
+        console.debug('[useNotesStore] patchGeneratedTab', {
+          noteId: id,
+          tabId,
+          patchKeys: Object.keys(patch),
+          status: patch.status,
+          error: patch.error,
+        })
         set((state) => {
           const note = state.notes[id]
           if (!note) return state
@@ -144,6 +153,7 @@ export const useNotesStore = create<NotesState>()(
       },
 
       removeTab: (id, tabId) => {
+        console.debug('[useNotesStore] removeTab', { noteId: id, tabId })
         set((state) => {
           const note = state.notes[id]
           if (!note) return state
@@ -180,6 +190,27 @@ export const useNotesStore = create<NotesState>()(
             notes: {
               ...state.notes,
               [id]: { ...note, suggestedOptions: options },
+            },
+          }
+        })
+      },
+
+      patchComponentState: (id, tabId, key, value) => {
+        console.debug('[useNotesStore] patchComponentState', { noteId: id, tabId, key, value })
+        set((state) => {
+          const note = state.notes[id]
+          if (!note) return state
+          return {
+            notes: {
+              ...state.notes,
+              [id]: {
+                ...note,
+                tabs: note.tabs.map((tab) =>
+                  tab.id === tabId
+                    ? { ...tab, componentState: { ...tab.componentState, [key]: value } }
+                    : tab,
+                ),
+              },
             },
           }
         })

@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { branchOutputSchema, editOutputSchema } from '../src/schemas/generativeUi'
 
 const streamTextMock = vi.fn()
 const objectOutputMock = vi.fn()
@@ -194,6 +195,63 @@ describe('POST /api/generate-ui', () => {
 
     expect(response.status).toBe(400)
     expect(streamTextMock).not.toHaveBeenCalled()
+  })
+
+  it('constrains branch-mode output to a schema where code is mandatory, not optional', async () => {
+    streamTextMock.mockReturnValue({
+      toTextStreamResponse: () => new Response('stream-body'),
+    })
+
+    const req = new Request('http://localhost/api/generate-ui', {
+      method: 'POST',
+      headers: { 'x-user-api-key': 'user-supplied-key' },
+      body: JSON.stringify({ content: 'note text', direction: 'Timeline' }),
+    })
+
+    await handler(req)
+
+    expect(objectOutputMock).toHaveBeenCalledWith({ schema: branchOutputSchema })
+  })
+
+  it('constrains edit-mode output to a schema where target_id/replacement_html are mandatory', async () => {
+    streamTextMock.mockReturnValue({
+      toTextStreamResponse: () => new Response('stream-body'),
+    })
+
+    const req = new Request('http://localhost/api/generate-ui', {
+      method: 'POST',
+      headers: { 'x-user-api-key': 'user-supplied-key' },
+      body: JSON.stringify({
+        content: 'note text',
+        direction: 'Make it blue',
+        previousCode: '<div class="red"></div>',
+        mode: 'edit',
+      }),
+    })
+
+    await handler(req)
+
+    expect(objectOutputMock).toHaveBeenCalledWith({ schema: editOutputSchema })
+  })
+
+  it('documents the available morph-* interactive components in the system prompt', async () => {
+    streamTextMock.mockReturnValue({
+      toTextStreamResponse: () => new Response('stream-body'),
+    })
+
+    const req = new Request('http://localhost/api/generate-ui', {
+      method: 'POST',
+      headers: { 'x-user-api-key': 'user-supplied-key' },
+      body: JSON.stringify({ content: 'note text', direction: 'Timeline' }),
+    })
+
+    await handler(req)
+
+    const callArgs = streamTextMock.mock.calls[0]?.[0] as { system: string }
+    expect(callArgs.system).toContain('morph-toggle')
+    expect(callArgs.system).toContain('morph-tabs')
+    expect(callArgs.system).toContain('data-state-key')
+    expect(callArgs.system).not.toContain('no JavaScript execution')
   })
 
   it('wraps untrusted fields in delimiter tags and warns the model not to follow them', async () => {

@@ -5,6 +5,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import type { GeneratedUITab } from '@/types/note'
 
 interface ArtifactViewProps {
+  noteId: string
   tab: GeneratedUITab | undefined
   code: string | undefined
   uiType: string | undefined
@@ -17,6 +18,7 @@ interface ArtifactViewProps {
 }
 
 export function ArtifactView({
+  noteId,
   tab,
   code,
   uiType,
@@ -72,7 +74,7 @@ export function ArtifactView({
             <p className="text-xs">Generating…</p>
           </div>
         ) : (
-          <PreviewCanvas code={code} uiType={uiType} />
+          <PreviewCanvas noteId={noteId} tabId={tab.id} code={code} uiType={uiType} />
         )}
       </div>
     </div>
