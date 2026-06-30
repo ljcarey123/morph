@@ -14,7 +14,7 @@ export function NoteList() {
       <button
         type="button"
         onClick={() => createNote()}
-        className="m-2 rounded border border-stone-800 px-3 py-2 text-sm text-stone-100 hover:bg-stone-800"
+        className="m-2 rounded border border-stone-700/50 px-3 py-2 text-sm text-stone-300 transition-colors hover:border-stone-600 hover:bg-stone-800 hover:text-stone-100"
       >
         + New note
       </button>
@@ -25,8 +25,8 @@ export function NoteList() {
             key={note.id}
             className={`flex items-center justify-between px-3 py-2 text-sm ${
               note.id === activeNoteId
-                ? 'bg-amber-500/15 text-stone-100'
-                : 'text-stone-400 hover:bg-stone-800'
+                ? 'bg-amber-500/10 text-stone-100 border-l-2 border-amber-500/50'
+                : 'text-stone-400 hover:bg-stone-800/70 border-l-2 border-transparent'
             }`}
           >
             <button

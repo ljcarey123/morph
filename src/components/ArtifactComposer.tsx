@@ -1,29 +1,32 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNotesStore } from '@/store/useNotesStore'
 import { useSuggestOptions } from '@/hooks/useSuggestOptions'
-import { useClassifyIntent } from '@/hooks/useClassifyIntent'
 import { Button } from '@/components/ui/Button'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import type { ClassifyIntent } from '@/schemas/classifyIntent'
 
 interface ArtifactComposerProps {
   noteId: string
   generate: (content: string, direction: string, previousCode?: string) => void
-  editTab: (tabId: string, content: string, direction: string, previousCode?: string) => void
+  generateDynamic: (content: string, direction: string) => Promise<void>
+  fetchAction: (message: string, currentArtifact: string) => Promise<ClassifyIntent | undefined>
   isLoading: boolean
+  isClassifying: boolean
   error: Error | undefined
 }
 
 export function ArtifactComposer({
   noteId,
   generate,
-  editTab,
+  generateDynamic,
+  fetchAction,
   isLoading,
+  isClassifying,
   error,
 }: ArtifactComposerProps) {
   const note = useNotesStore((state) => state.notes[noteId])
   const setSuggestedOptions = useNotesStore((state) => state.setSuggestedOptions)
   const { fetchOptions, isLoading: isLoadingOptions } = useSuggestOptions()
-  const { fetchAction, isLoading: isClassifying } = useClassifyIntent()
   const [message, setMessage] = useState('')
 
   const runFetchOptions = useCallback(
@@ -51,14 +54,10 @@ export function ArtifactComposer({
     if (text.length === 0 || busy) return
     setMessage('')
 
-    if (!activeTab) {
-      generate(note.content, text)
-      return
-    }
+    const intent = await fetchAction(text, activeTab?.direction ?? '')
 
-    const action = await fetchAction(text, activeTab.direction)
-    if (action === 'edit') {
-      editTab(activeTab.id, note.content, text, activeTab.code)
+    if (intent?.mode === 'dynamic') {
+      void generateDynamic(note.content, text)
     } else {
       generate(note.content, text)
     }
@@ -145,7 +144,7 @@ export function ArtifactComposer({
           }}
           placeholder="Describe a new view, or tweak the one you're looking at…"
           disabled={busy}
-          className="flex-1 rounded border border-stone-800 bg-stone-900 px-3 py-2 text-sm text-stone-100 outline-none disabled:opacity-40"
+          className="flex-1 rounded border border-stone-700/60 bg-stone-900 px-3 py-2 text-sm text-stone-100 outline-none transition-[border-color,box-shadow] duration-200 focus:border-green-400/30 focus:shadow-[0_0_0_1px_rgba(74,222,128,0.15)] disabled:opacity-40"
         />
         <Button
           onClick={() => {

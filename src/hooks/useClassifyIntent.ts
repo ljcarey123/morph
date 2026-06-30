@@ -8,10 +8,7 @@ export function useClassifyIntent() {
   const [error, setError] = useState<Error | undefined>(undefined)
 
   const fetchAction = useCallback(
-    async (
-      message: string,
-      currentArtifact: string,
-    ): Promise<ClassifyIntent['action'] | undefined> => {
+    async (message: string, currentArtifact: string): Promise<ClassifyIntent | undefined> => {
       setIsLoading(true)
       setError(undefined)
       console.debug('[useClassifyIntent] fetchAction', {
@@ -31,8 +28,8 @@ export function useClassifyIntent() {
           throw new Error(await response.text())
         }
         const data = (await response.json()) as ClassifyIntent
-        console.debug('[useClassifyIntent] received', { action: data.action })
-        return data.action
+        console.debug('[useClassifyIntent] received', { action: data.action, mode: data.mode })
+        return data
       } catch (caught) {
         const err = caught instanceof Error ? caught : new Error('Failed to classify intent')
         console.debug('[useClassifyIntent] error', { message: err.message })

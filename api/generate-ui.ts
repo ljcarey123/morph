@@ -2,7 +2,6 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { Output, streamText } from 'ai'
 import { z } from 'zod'
 import { branchOutputSchema, editOutputSchema } from '../src/schemas/generativeUi'
-import { COMPONENT_REGISTRY } from '../src/sandbox-runtime/registry'
 import { PROMPT_TAGS, UNTRUSTED_DATA_NOTICE, sanitizeText, wrapInTag } from './_shared/sanitize'
 
 export const config = { runtime: 'edge' }
@@ -13,33 +12,11 @@ const ROLE_INTRO =
   'explanation of your reasoning, and up to 3 suggested next actions. Return clean HTML or SVG ' +
   'only — no markdown code fences.'
 
-const COMPONENT_DOCS = COMPONENT_REGISTRY.map((component) => {
-  const attrs = component.attributes
-    .map((attribute) => `    - ${attribute.name} (${attribute.type}): ${attribute.description}`)
-    .join('\n')
-  return (
-    `  ${component.tag}: ${component.description}\n` +
-    (attrs ? `${attrs}\n` : '') +
-    `    Example:\n      ${component.example.split('\n').join('\n      ')}`
-  )
-}).join('\n')
-
 const RENDERING_RULES = [
-  'No scripting of your own: never generate <script> tags, onclick/onchange/etc. attributes, ' +
-    'javascript: URLs, or <form> submissions — anything like this is stripped before render and ' +
-    'will simply be missing, misleading the user. The ONLY way to make something interactive is ' +
-    'the fixed set of pre-built components below; everything else you draw (including plain ' +
-    '<button>/<a> elements) must be purely static, since clicking it does nothing. Anything that ' +
-    'should trigger a real action belongs in suggested_actions instead.',
-  'Interactive components: you may use these custom tags freely inside your markup — they are ' +
-    'real, working, pre-built widgets, not placeholders. Wire up their documented data-* child ' +
-    'markers/attributes exactly as shown; everything else about their appearance (colors, ' +
-    'spacing, layout) is yours to style same as any other element:\n' +
-    COMPONENT_DOCS +
-    '\n  Only set "data-state-key" on a component when its value should be remembered across ' +
-    'edits and reloads (e.g. a counter tracking real progress) — give it a stable, descriptive, ' +
-    'kebab-case value, unique within the document, same spirit as element ids below. Leave it ' +
-    'off for purely transient state like which tab happens to be open.',
+  'No interactivity: never generate <script> tags, onclick/onchange/etc. event-handler ' +
+    'attributes, javascript: URLs, <form> submissions, or custom elements — all of these are ' +
+    'stripped or broken before render. Every element you draw is purely static; clicking it ' +
+    'does nothing. Anything that implies user interaction belongs in suggested_actions instead.',
   'Contrast: always pair every background color with an explicitly contrasting text color on ' +
     'the same element or its container, and vice versa — never rely on browser or inherited ' +
     'defaults for either, since unstyled text can end up invisible against an unexpected ' +
@@ -59,6 +36,10 @@ const RENDERING_RULES = [
     'never an empty id. The single outermost element of your markup must also carry its own ' +
     'stable id (use "view-root" unless something more descriptive fits), so it is always ' +
     'available as a guaranteed edit target even when nothing smaller covers a requested change.',
+  'Output budget: "explanation" is a one-or-two sentence caption, not a design writeup — ' +
+    'never more than ~40 words. The markup itself (code/replacement_html) is what matters and ' +
+    'must always be written in full; a long explanation that leaves the markup truncated or ' +
+    'missing is a failed response.',
 ]
 
 const SHARED_RULES =
@@ -152,7 +133,7 @@ export default async function handler(req: Request): Promise<Response> {
           model: google('gemini-flash-latest'),
           system: EDIT_SYSTEM_PROMPT,
           prompt,
-          maxOutputTokens: 8192,
+          maxOutputTokens: 16384,
           output: Output.object({ schema: editOutputSchema }),
           onFinish: ({ finishReason, usage }) => {
             console.debug('[api/generate-ui] stream finished', { mode, finishReason, usage })
@@ -162,7 +143,7 @@ export default async function handler(req: Request): Promise<Response> {
           model: google('gemini-flash-latest'),
           system: BRANCH_SYSTEM_PROMPT,
           prompt,
-          maxOutputTokens: 8192,
+          maxOutputTokens: 16384,
           output: Output.object({ schema: branchOutputSchema }),
           onFinish: ({ finishReason, usage }) => {
             console.debug('[api/generate-ui] stream finished', { mode, finishReason, usage })

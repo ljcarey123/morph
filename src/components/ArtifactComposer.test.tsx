@@ -3,14 +3,15 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useNotesStore } from '@/store/useNotesStore'
 import { ArtifactComposer } from './ArtifactComposer'
+import type { ClassifyIntent } from '@/schemas/classifyIntent'
 
-function mockFetchSequence(action: 'create' | 'edit') {
+const STATIC_INTENT: ClassifyIntent = { action: 'create', mode: 'static' }
+const DYNAMIC_INTENT: ClassifyIntent = { action: 'create', mode: 'dynamic' }
+
+function mockSuggestOptions() {
   vi.stubGlobal(
     'fetch',
     vi.fn((url: string) => {
-      if (url === '/api/classify-intent') {
-        return Promise.resolve(new Response(JSON.stringify({ action }), { status: 200 }))
-      }
       if (url === '/api/suggest-options') {
         return Promise.resolve(new Response(JSON.stringify({ options: [] }), { status: 200 }))
       }
@@ -38,7 +39,7 @@ describe('ArtifactComposer', () => {
       userApiKey: 'test-key',
     })
     localStorage.clear()
-    mockFetchSequence('create')
+    mockSuggestOptions()
   })
 
   it('renders nothing when the note does not exist', () => {
@@ -46,8 +47,10 @@ describe('ArtifactComposer', () => {
       <ArtifactComposer
         noteId="missing"
         generate={vi.fn()}
-        editTab={vi.fn()}
+        generateDynamic={vi.fn()}
+        fetchAction={vi.fn().mockResolvedValue(STATIC_INTENT)}
         isLoading={false}
+        isClassifying={false}
         error={undefined}
       />,
     )
@@ -62,8 +65,10 @@ describe('ArtifactComposer', () => {
       <ArtifactComposer
         noteId="a"
         generate={generate}
-        editTab={vi.fn()}
+        generateDynamic={vi.fn()}
+        fetchAction={vi.fn().mockResolvedValue(STATIC_INTENT)}
         isLoading={false}
+        isClassifying={false}
         error={undefined}
       />,
     )
@@ -74,16 +79,17 @@ describe('ArtifactComposer', () => {
     expect(generate).not.toHaveBeenCalled()
   })
 
-  it('classifies and generates a new artifact when there is no active tab', async () => {
+  it('classifies and calls generate for a static artifact', async () => {
     const generate = vi.fn()
-    const editTab = vi.fn()
     const user = userEvent.setup()
     render(
       <ArtifactComposer
         noteId="a"
         generate={generate}
-        editTab={editTab}
+        generateDynamic={vi.fn()}
+        fetchAction={vi.fn().mockResolvedValue(STATIC_INTENT)}
         isLoading={false}
+        isClassifying={false}
         error={undefined}
       />,
     )
@@ -94,78 +100,54 @@ describe('ArtifactComposer', () => {
     await waitFor(() => {
       expect(generate).toHaveBeenCalledWith('hello world', 'Build a timeline')
     })
-    expect(editTab).not.toHaveBeenCalled()
   })
 
-  it('routes to editTab when classified as an edit and a tab is active', async () => {
-    mockFetchSequence('edit')
-    const existingNote = useNotesStore.getState().notes.a
-    if (!existingNote) throw new Error('expected note to exist')
-    useNotesStore.setState({
-      notes: {
-        a: {
-          ...existingNote,
-          tabs: [
-            {
-              id: 'tab-1',
-              title: 'Timeline',
-              uiType: 'html_snippet',
-              code: '<div></div>',
-              explanation: '',
-              suggestedActions: [],
-              direction: 'Timeline',
-              createdAt: 1,
-              status: 'done',
-            },
-          ],
-          activeTabId: 'tab-1',
-        },
-      },
-    })
+  it('calls generateDynamic when classified as dynamic', async () => {
+    const generateDynamic = vi.fn().mockResolvedValue(undefined)
     const generate = vi.fn()
-    const editTab = vi.fn()
     const user = userEvent.setup()
     render(
       <ArtifactComposer
         noteId="a"
         generate={generate}
-        editTab={editTab}
+        generateDynamic={generateDynamic}
+        fetchAction={vi.fn().mockResolvedValue(DYNAMIC_INTENT)}
         isLoading={false}
+        isClassifying={false}
         error={undefined}
       />,
     )
 
-    await user.type(screen.getByPlaceholderText(/Describe a new view/), 'Make it blue')
+    await user.type(screen.getByPlaceholderText(/Describe a new view/), 'Show me a tabbed dashboard')
     await user.click(screen.getByRole('button', { name: 'Send' }))
 
     await waitFor(() => {
-      expect(editTab).toHaveBeenCalledWith('tab-1', 'hello world', 'Make it blue', '<div></div>')
+      expect(generateDynamic).toHaveBeenCalledWith('hello world', 'Show me a tabbed dashboard')
     })
     expect(generate).not.toHaveBeenCalled()
   })
 
-  it('falls back to generate when classified as an edit but no tab is active', async () => {
-    mockFetchSequence('edit')
+  it('falls back to static generate when fetchAction returns undefined', async () => {
     const generate = vi.fn()
-    const editTab = vi.fn()
     const user = userEvent.setup()
     render(
       <ArtifactComposer
         noteId="a"
         generate={generate}
-        editTab={editTab}
+        generateDynamic={vi.fn()}
+        fetchAction={vi.fn().mockResolvedValue(undefined)}
         isLoading={false}
+        isClassifying={false}
         error={undefined}
       />,
     )
 
-    await user.type(screen.getByPlaceholderText(/Describe a new view/), 'Make it blue')
+    await user.type(screen.getByPlaceholderText(/Describe a new view/), 'Make a chart')
     await user.click(screen.getByRole('button', { name: 'Send' }))
 
     await waitFor(() => {
-      expect(generate).toHaveBeenCalledWith('hello world', 'Make it blue')
+      expect(generate).toHaveBeenCalledWith('hello world', 'Make a chart')
     })
-    expect(editTab).not.toHaveBeenCalled()
   })
 
   it('submits when Enter is pressed', async () => {
@@ -175,8 +157,10 @@ describe('ArtifactComposer', () => {
       <ArtifactComposer
         noteId="a"
         generate={generate}
-        editTab={vi.fn()}
+        generateDynamic={vi.fn()}
+        fetchAction={vi.fn().mockResolvedValue(STATIC_INTENT)}
         isLoading={false}
+        isClassifying={false}
         error={undefined}
       />,
     )
@@ -193,8 +177,10 @@ describe('ArtifactComposer', () => {
       <ArtifactComposer
         noteId="a"
         generate={vi.fn()}
-        editTab={vi.fn()}
+        generateDynamic={vi.fn()}
+        fetchAction={vi.fn().mockResolvedValue(STATIC_INTENT)}
         isLoading={false}
+        isClassifying={false}
         error={new Error('boom')}
       />,
     )

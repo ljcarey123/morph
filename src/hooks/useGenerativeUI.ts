@@ -25,7 +25,7 @@ export function useGenerativeUI(noteId: string) {
     headers: () => ({
       'x-user-api-key': userApiKey ?? '',
     }),
-    onFinish: ({ object }) => {
+    onFinish: ({ object, error: finishError }) => {
       const tabId = tabIdRef.current
       console.debug('[useGenerativeUI] onFinish', {
         tabId,
@@ -34,8 +34,22 @@ export function useGenerativeUI(noteId: string) {
         codeLength: object?.code?.length ?? 0,
         targetId: object?.target_id,
         replacementHtmlLength: object?.replacement_html?.length ?? 0,
+        finishError: finishError?.message,
       })
-      if (!tabId || !object) return
+      if (!tabId) return
+      if (!object) {
+        console.warn('[useGenerativeUI] final object failed schema validation', {
+          tabId,
+          message: finishError?.message,
+        })
+        patchGeneratedTab(noteId, tabId, {
+          error:
+            finishError?.message ??
+            'The model returned a response that did not match the expected format — try again.',
+          status: 'error',
+        })
+        return
+      }
 
       if (modeRef.current === 'edit' && object.target_id && object.replacement_html) {
         const patched = HtmlPatcher.applyPatch(

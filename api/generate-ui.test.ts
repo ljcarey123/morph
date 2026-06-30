@@ -234,7 +234,7 @@ describe('POST /api/generate-ui', () => {
     expect(objectOutputMock).toHaveBeenCalledWith({ schema: editOutputSchema })
   })
 
-  it('documents the available morph-* interactive components in the system prompt', async () => {
+  it('enforces no-interactivity rule and does not include morph-* component docs', async () => {
     streamTextMock.mockReturnValue({
       toTextStreamResponse: () => new Response('stream-body'),
     })
@@ -248,10 +248,10 @@ describe('POST /api/generate-ui', () => {
     await handler(req)
 
     const callArgs = streamTextMock.mock.calls[0]?.[0] as { system: string }
-    expect(callArgs.system).toContain('morph-toggle')
-    expect(callArgs.system).toContain('morph-tabs')
-    expect(callArgs.system).toContain('data-state-key')
-    expect(callArgs.system).not.toContain('no JavaScript execution')
+    expect(callArgs.system).toContain('No interactivity')
+    expect(callArgs.system).not.toContain('morph-toggle')
+    expect(callArgs.system).not.toContain('morph-tabs')
+    expect(callArgs.system).not.toContain('data-state-key')
   })
 
   it('wraps untrusted fields in delimiter tags and warns the model not to follow them', async () => {

@@ -29,7 +29,7 @@ export function ArtifactTabs({ noteId }: ArtifactTabsProps) {
       {note.tabs.map((tab) => (
         <div
           key={tab.id}
-          className={`flex shrink-0 items-stretch gap-1 rounded text-sm ${
+          className={`flex shrink-0 items-stretch gap-1 rounded text-sm animate-[tab-in_200ms_ease-out_both] ${
             tab.id === note.activeTabId
               ? 'bg-amber-500/15 text-stone-100'
               : 'text-stone-400 hover:bg-stone-800'
@@ -43,7 +43,10 @@ export function ArtifactTabs({ noteId }: ArtifactTabsProps) {
             className="flex min-w-0 max-w-48 items-center gap-2 px-3 py-2 text-left"
           >
             {tab.status === 'streaming' ? (
-              <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-amber-400" />
+              <span className="relative flex h-2 w-2 shrink-0">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400/50" style={{ animationDuration: '1.4s' }} />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-green-400/80" />
+              </span>
             ) : tab.status === 'error' ? (
               <span className="shrink-0 text-[10px] font-bold text-red-400">!</span>
             ) : (

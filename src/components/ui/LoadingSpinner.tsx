@@ -21,7 +21,7 @@ export function LoadingSpinner({
     <span
       role="status"
       aria-label={label}
-      className={`inline-block animate-spin rounded-full border-stone-600 border-t-amber-400 ${SIZE_CLASSES[size]} ${className}`.trim()}
+      className={`inline-block animate-spin rounded-full border-stone-700 border-t-green-400 ${SIZE_CLASSES[size]} ${className}`.trim()}
     />
   )
 }
