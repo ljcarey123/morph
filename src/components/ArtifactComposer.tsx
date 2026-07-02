@@ -61,14 +61,14 @@ export function ArtifactComposer({
   const hasChips = note.suggestedOptions.length > 0 || Boolean(activeTab?.suggestedActions.some(Boolean))
 
   return (
-    <div className="group flex flex-col gap-2 border-t border-stone-800 p-3">
-      {error ? <p className="text-xs text-red-400">{error.message}</p> : null}
+    <div className="group flex flex-col gap-2.5 border-t border-slate-100 bg-slate-50/60 p-3">
+      {error ? <p className="text-xs text-red-500">{error.message}</p> : null}
 
       {hasChips ? (
         <div className="grid grid-rows-[0fr] overflow-hidden opacity-0 transition-all duration-300 ease-out group-focus-within:grid-rows-[1fr] group-focus-within:opacity-100">
-          <div className="flex min-h-0 flex-col gap-2 overflow-hidden">
+          <div className="flex min-h-0 flex-col gap-2 overflow-hidden pt-1">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-stone-500">
+              <span className="text-xs text-slate-400">
                 {isLoadingOptions ? 'Thinking…' : 'Suggestions'}
               </span>
               <Button
@@ -88,7 +88,7 @@ export function ArtifactComposer({
                 <Button
                   key={option.label}
                   variant="chip"
-                  className="animate-[chip-in_220ms_ease-out_both]"
+                  className="animate-[chip-in_380ms_ease-out_both]"
                   style={{ animationDelay: `${(index * 30).toString()}ms` }}
                   onClick={() => {
                     setMessage(option.description)
@@ -109,7 +109,7 @@ export function ArtifactComposer({
                     <Button
                       key={action}
                       variant="chip"
-                      className="animate-[chip-in_220ms_ease-out_both] px-2 py-1 text-xs"
+                      className="animate-[chip-in_380ms_ease-out_both] px-2 py-1 text-xs"
                       style={{ animationDelay: `${(index * 30).toString()}ms` }}
                       onClick={() => {
                         setMessage(action)
@@ -125,18 +125,18 @@ export function ArtifactComposer({
         </div>
       ) : null}
 
-      <div className="flex gap-2">
-        <div className="flex shrink-0 overflow-hidden rounded border border-stone-700/60 text-xs">
+      <div className="flex items-center gap-2">
+        <div className="flex shrink-0 rounded-full bg-slate-100 p-0.5 text-xs">
           {(['canvas', 'dashboard'] as const).map((m) => (
             <button
               key={m}
               type="button"
               onClick={() => { setMode(m) }}
               disabled={busy}
-              className={`px-2.5 py-1.5 capitalize transition-colors disabled:opacity-40 ${
+              className={`rounded-full px-3 py-1.5 capitalize transition-all duration-200 disabled:opacity-40 ${
                 mode === m
-                  ? 'bg-stone-700 text-stone-100'
-                  : 'text-stone-500 hover:text-stone-300'
+                  ? 'bg-white font-medium text-violet-600 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-600'
               }`}
             >
               {m}
@@ -146,25 +146,32 @@ export function ArtifactComposer({
         <input
           type="text"
           value={message}
-          onChange={(event) => {
-            setMessage(event.target.value)
-          }}
+          onChange={(event) => { setMessage(event.target.value) }}
           onKeyDown={(event) => {
             if (event.key === 'Enter' && !event.shiftKey) {
               event.preventDefault()
               handleSubmit()
             }
           }}
-          placeholder="Describe a new view, or tweak the one you're looking at…"
+          placeholder="Describe a new view…"
           disabled={busy}
-          className="flex-1 rounded border border-stone-700/60 bg-stone-900 px-3 py-2 text-sm text-stone-100 outline-none transition-[border-color,box-shadow] duration-200 focus:border-green-400/30 focus:shadow-[0_0_0_1px_rgba(74,222,128,0.15)] disabled:opacity-40"
+          className="flex-1 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 outline-none transition-all placeholder:text-slate-400 focus:border-violet-300 focus:ring-2 focus:ring-violet-100 disabled:opacity-40"
         />
-        <Button
+        <button
+          type="button"
           onClick={handleSubmit}
           disabled={busy || message.trim().length === 0}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-violet-500 text-white shadow-sm transition-all hover:bg-violet-600 active:scale-95 disabled:opacity-40"
+          aria-label="Send"
         >
-          {busy ? <LoadingSpinner size="sm" /> : 'Send'}
-        </Button>
+          {busy ? (
+            <LoadingSpinner size="sm" className="border-violet-300 border-t-white" />
+          ) : (
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          )}
+        </button>
       </div>
     </div>
   )

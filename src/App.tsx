@@ -4,6 +4,14 @@ import { NoteList } from '@/components/NoteList'
 import { NoteWorkspace } from '@/components/NoteWorkspace'
 import { SettingsModal } from '@/components/SettingsModal'
 
+function ChevronRightIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 2l4 5-4 5" />
+    </svg>
+  )
+}
+
 function App() {
   const activeNoteId = useNotesStore((state) => state.activeNoteId)
   const createNote = useNotesStore((state) => state.createNote)
@@ -11,51 +19,43 @@ function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
 
   return (
-    <div className="flex h-screen flex-col bg-stone-950 text-stone-100">
-      <header className="flex items-center justify-between border-b border-stone-800 px-4 py-3">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              setIsSidebarOpen((prev) => !prev)
-            }}
-            aria-label={isSidebarOpen ? 'Hide notes panel' : 'Show notes panel'}
-            aria-pressed={isSidebarOpen}
-            className="rounded p-2 text-stone-400 hover:bg-stone-800 hover:text-stone-100"
-          >
-            ☰
-          </button>
-          <h1 className="text-lg font-medium">Morph</h1>
-        </div>
-        <button
-          type="button"
-          onClick={() => {
-            setIsSettingsOpen(true)
-          }}
-          aria-label="Settings"
-          className="rounded p-2 text-stone-400 hover:bg-stone-800 hover:text-stone-100"
-        >
-          ⚙
-        </button>
-      </header>
+    <div className="flex h-screen overflow-hidden bg-[#f0eef8]">
+      {/* Sidebar — transitions to a thin strip when collapsed so the expand
+          button has its own layout space and never overlaps the workspace */}
+      <div
+        className={`shrink-0 transition-all duration-300 ease-in-out ${isSidebarOpen ? 'w-[272px]' : 'w-10'}`}
+      >
+        {isSidebarOpen ? (
+          <div className="h-full p-3 pr-1.5">
+            <NoteList
+              onOpenSettings={() => { setIsSettingsOpen(true) }}
+              onCollapse={() => { setIsSidebarOpen(false) }}
+            />
+          </div>
+        ) : (
+          <div className="flex h-full flex-col items-center pt-3">
+            <button
+              type="button"
+              onClick={() => { setIsSidebarOpen(true) }}
+              title="Show sidebar"
+              className="flex h-8 w-8 items-center justify-center rounded-xl bg-white text-slate-400 shadow-sm transition-colors hover:text-slate-600"
+            >
+              <ChevronRightIcon />
+            </button>
+          </div>
+        )}
+      </div>
 
-      <div className="flex flex-1 overflow-hidden">
-        <div
-          className={`overflow-hidden transition-all duration-200 ${
-            isSidebarOpen ? 'w-64' : 'w-0'
-          }`}
-        >
-          <NoteList />
-        </div>
-
+      {/* Main workspace */}
+      <div className="flex min-w-0 flex-1 flex-col p-3 pl-1.5">
         {activeNoteId ? (
           <NoteWorkspace noteId={activeNoteId} />
         ) : (
           <div className="flex flex-1 items-center justify-center">
             <button
               type="button"
-              onClick={() => createNote()}
-              className="rounded bg-amber-500 px-4 py-2 text-sm font-medium text-stone-950 hover:bg-amber-400"
+              onClick={() => { createNote() }}
+              className="rounded-2xl bg-violet-500 px-6 py-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-violet-600"
             >
               Create your first note
             </button>
@@ -65,9 +65,7 @@ function App() {
 
       <SettingsModal
         isOpen={isSettingsOpen}
-        onClose={() => {
-          setIsSettingsOpen(false)
-        }}
+        onClose={() => { setIsSettingsOpen(false) }}
       />
     </div>
   )

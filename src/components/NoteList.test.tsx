@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useNotesStore } from '@/store/useNotesStore'
 import { NoteList } from './NoteList'
 
@@ -36,7 +36,7 @@ describe('NoteList', () => {
       },
     })
 
-    render(<NoteList />)
+    render(<NoteList onOpenSettings={vi.fn()} onCollapse={vi.fn()} />)
 
     expect(screen.getByText('First')).toBeInTheDocument()
     expect(screen.getByText('Second')).toBeInTheDocument()
@@ -44,7 +44,7 @@ describe('NoteList', () => {
 
   it('creates a new note when "+ New note" is clicked', async () => {
     const user = userEvent.setup()
-    render(<NoteList />)
+    render(<NoteList onOpenSettings={vi.fn()} onCollapse={vi.fn()} />)
 
     await user.click(screen.getByRole('button', { name: '+ New note' }))
 
@@ -67,7 +67,7 @@ describe('NoteList', () => {
       },
     })
     const user = userEvent.setup()
-    render(<NoteList />)
+    render(<NoteList onOpenSettings={vi.fn()} onCollapse={vi.fn()} />)
 
     await user.click(screen.getByText('First'))
 
@@ -90,7 +90,7 @@ describe('NoteList', () => {
       },
     })
     const user = userEvent.setup()
-    render(<NoteList />)
+    render(<NoteList onOpenSettings={vi.fn()} onCollapse={vi.fn()} />)
 
     await user.click(screen.getByRole('button', { name: 'Delete First' }))
 

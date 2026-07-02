@@ -7,12 +7,14 @@ interface NotesState {
   notes: Record<string, Note>
   activeNoteId: string | null
   userApiKey: string | null
+  noteOrder: string[]
   createNote: () => string
   updateNoteContent: (id: string, content: string) => void
   updateNoteTitle: (id: string, title: string) => void
   deleteNote: (id: string) => void
   setActiveNoteId: (id: string | null) => void
   setApiKey: (key: string | null) => void
+  reorderNotes: (orderedIds: string[]) => void
   addPendingTab: (id: string, direction: string, previousCode?: string) => string
   patchGeneratedTab: (
     id: string,
@@ -31,6 +33,7 @@ export const useNotesStore = create<NotesState>()(
       notes: {},
       activeNoteId: null,
       userApiKey: null,
+      noteOrder: [],
 
       createNote: () => {
         const id = crypto.randomUUID()
@@ -48,6 +51,7 @@ export const useNotesStore = create<NotesState>()(
         set((state) => ({
           notes: { ...state.notes, [id]: note },
           activeNoteId: id,
+          noteOrder: [id, ...state.noteOrder],
         }))
         return id
       },
@@ -83,8 +87,12 @@ export const useNotesStore = create<NotesState>()(
           const notes = { ...state.notes }
           Reflect.deleteProperty(notes, id)
           const activeNoteId = state.activeNoteId === id ? null : state.activeNoteId
-          return { notes, activeNoteId }
+          return { notes, activeNoteId, noteOrder: state.noteOrder.filter((i) => i !== id) }
         })
+      },
+
+      reorderNotes: (orderedIds) => {
+        set({ noteOrder: orderedIds })
       },
 
       setActiveNoteId: (id) => {

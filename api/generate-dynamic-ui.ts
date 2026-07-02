@@ -1,5 +1,5 @@
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
-import { generateText, Output } from 'ai'
+import { generateObject } from 'ai'
 import { z } from 'zod'
 import { dynamicUiConfigSchema } from '../src/schemas/dynamicUi'
 import { PROMPT_TAGS, UNTRUSTED_DATA_NOTICE, sanitizeText, wrapInTag } from './_shared/sanitize'
@@ -55,20 +55,20 @@ export default async function handler(req: Request): Promise<Response> {
     '\n\n' +
     wrapInTag(PROMPT_TAGS.userDirection, sanitizeText(direction, 500))
 
-  const result = await generateText({
+  const { object, finishReason } = await generateObject({
     model: google('gemini-flash-latest'),
+    schema: dynamicUiConfigSchema,
     system: SYSTEM_PROMPT,
     prompt,
-    output: Output.object({ schema: dynamicUiConfigSchema }),
     maxOutputTokens: 8192,
   })
 
   console.debug('[api/generate-dynamic-ui] result', {
-    layout: result.output.layout,
-    tabCount: result.output.tabs?.length,
-    cardCount: result.output.cards?.length ?? result.output.tabs?.flatMap((t) => t.cards ?? []).length,
-    finishReason: result.finishReason,
+    layout: object.layout,
+    tabCount: object.tabs?.length,
+    cardCount: object.cards?.length ?? object.tabs?.flatMap((t) => t.cards ?? []).length,
+    finishReason,
   })
 
-  return Response.json(result.output)
+  return Response.json(object)
 }

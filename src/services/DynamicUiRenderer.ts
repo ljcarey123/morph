@@ -4,8 +4,6 @@ import type {
   CardSpec,
   TabSpec,
   AccordionItem,
-  CounterControl,
-  ToggleControl,
   ControlSpec,
 } from '@/schemas/dynamicUi'
 
@@ -44,7 +42,7 @@ function labelStyle(theme: Theme): string {
   })
 }
 
-function renderCounter(spec: CounterControl, theme: Theme): string {
+function renderCounter(spec: ControlSpec, theme: Theme): string {
   const attrs = [
     `id="${spec.id}"`,
     spec.stateKey ? `data-state-key="${spec.stateKey}"` : '',
@@ -70,8 +68,8 @@ function renderCounter(spec: CounterControl, theme: Theme): string {
 </morph-counter>`
 }
 
-function renderToggle(spec: ToggleControl, theme: Theme): string {
-  const initial = spec.initial ?? false
+function renderToggle(spec: ControlSpec, theme: Theme): string {
+  const initial = spec.initialOn ?? false
   const attrs = [
     `id="${spec.id}"`,
     spec.stateKey ? `data-state-key="${spec.stateKey}"` : '',
@@ -157,9 +155,12 @@ function renderCardGrid(cards: CardSpec[], theme: Theme): string {
 function renderTabs(tabs: TabSpec[], theme: Theme): string {
   const defaultTab = tabs[0]?.id ?? ''
 
+  // All buttons start with neutral styling; the runtime's activate() immediately
+  // sets opacity/fontWeight on connectedCallback so the initial active tab is
+  // visually distinguished without hardcoding per-position styles.
   const triggers = tabs
     .map(
-      (tab, i) =>
+      (tab) =>
         `<button data-tab-trigger="${tab.id}" style="${s({
           padding: '8px 16px',
           cursor: 'pointer',
@@ -167,9 +168,11 @@ function renderTabs(tabs: TabSpec[], theme: Theme): string {
           'text-transform': 'uppercase',
           'letter-spacing': '0.1em',
           border: 'none',
-          'border-bottom': i === 0 ? `2px solid ${theme.accent}` : '2px solid transparent',
+          'border-bottom': `2px solid ${theme.accent}`,
           background: 'transparent',
-          color: i === 0 ? theme.accent : theme.muted,
+          color: theme.accent,
+          opacity: '0.5',
+          'font-weight': '400',
           'white-space': 'nowrap',
         })}">${tab.label}</button>`,
     )

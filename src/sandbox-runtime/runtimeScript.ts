@@ -41,7 +41,12 @@ export const SANDBOX_RUNTIME_SCRIPT = `
       connectedCallback() {
         var self = this;
         var triggers = Array.from(this.querySelectorAll("[data-tab-trigger]"));
+        // Panels should be inside morph-tabs, but the LLM sometimes places them as
+        // siblings. Fall back to searching the nearest parent so both cases work.
         var panels = Array.from(this.querySelectorAll("[data-tab-panel]"));
+        if (panels.length === 0) {
+          panels = Array.from((self.parentElement || document.body).querySelectorAll("[data-tab-panel]"));
+        }
         console.debug("[morph-tabs] connected", {
           id: self.id,
           triggerNames: triggers.map(function (t) { return t.getAttribute("data-tab-trigger"); }),
@@ -49,7 +54,12 @@ export const SANDBOX_RUNTIME_SCRIPT = `
         });
         function activate(name) {
           triggers.forEach(function (trigger) {
-            trigger.toggleAttribute("data-active", trigger.getAttribute("data-tab-trigger") === name);
+            var isActive = trigger.getAttribute("data-tab-trigger") === name;
+            trigger.toggleAttribute("data-active", isActive);
+            // Provide visual feedback regardless of whether the LLM or renderer
+            // hard-coded the initial active-tab appearance in inline styles.
+            trigger.style.opacity = isActive ? "1" : "0.5";
+            trigger.style.fontWeight = isActive ? "600" : "400";
           });
           panels.forEach(function (panel) {
             panel.hidden = panel.getAttribute("data-tab-panel") !== name;

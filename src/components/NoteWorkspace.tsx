@@ -54,7 +54,7 @@ export function NoteWorkspace({ noteId }: NoteWorkspaceProps) {
 
   return (
     <div
-      className={`flex h-full min-w-0 flex-1 flex-col transition-[box-shadow] duration-500${isAnyBusy ? ' animate-[pulse-glow_2s_ease-in-out_infinite]' : ''}`}
+      className={`flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl bg-white transition-[box-shadow] duration-500 ${isAnyBusy ? 'animate-[pulse-glow_2s_ease-in-out_infinite]' : 'shadow-[0_4px_24px_rgba(0,0,0,0.07)]'}`}
     >
       <ArtifactTabs noteId={noteId} />
       <div className="flex-1 overflow-auto">

@@ -14,29 +14,30 @@ const statSchema = z.object({
   value: z.string(),
 })
 
-const counterControlSchema = z.object({
-  type: z.literal('counter'),
+// Flat control schema — avoids anyOf/discriminatedUnion which Gemini rejects.
+// Use type === 'counter' or 'toggle' to select which optional fields apply.
+export const controlSchema = z.object({
+  type: z.enum(['counter', 'toggle']),
   id: z.string(),
   label: z.string(),
-  stateKey: z.string().optional().describe('Kebab-case key — set only if value should persist across reloads'),
+  stateKey: z
+    .string()
+    .optional()
+    .describe('Kebab-case key — set only if state should persist across reloads'),
+  // counter-specific
   min: z.number().optional(),
   max: z.number().optional(),
   step: z.number().optional(),
-  initial: z.number().optional(),
+  initial: z.number().optional().describe('Starting value for counter controls'),
   unit: z.string().optional().describe('Short unit label shown next to the value, e.g. "soldiers"'),
-})
-
-const toggleControlSchema = z.object({
-  type: z.literal('toggle'),
-  id: z.string(),
-  label: z.string(),
-  stateKey: z.string().optional().describe('Kebab-case key — set only if state should persist across reloads'),
+  // toggle-specific
   offLabel: z.string().optional(),
   onLabel: z.string().optional(),
-  initial: z.boolean().optional(),
+  initialOn: z
+    .boolean()
+    .optional()
+    .describe('Starting state for toggle controls — true means on'),
 })
-
-export const controlSchema = z.discriminatedUnion('type', [counterControlSchema, toggleControlSchema])
 
 export const cardSchema = z.object({
   id: z.string(),
@@ -90,5 +91,3 @@ export type CardSpec = z.infer<typeof cardSchema>
 export type TabSpec = z.infer<typeof tabSchema>
 export type AccordionItem = z.infer<typeof accordionItemSchema>
 export type ControlSpec = z.infer<typeof controlSchema>
-export type CounterControl = z.infer<typeof counterControlSchema>
-export type ToggleControl = z.infer<typeof toggleControlSchema>

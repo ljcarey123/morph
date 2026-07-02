@@ -1,32 +1,38 @@
 @import 'tailwindcss';
 
 @keyframes chip-in {
-  from { opacity: 0; transform: translateY(6px) scale(0.96); }
-  to   { opacity: 1; transform: translateY(0)   scale(1);    }
+  0%   { opacity: 0; transform: translateY(8px) scale(0.88); }
+  55%  { opacity: 1; transform: translateY(-2px) scale(1.04); }
+  78%  { transform: translateY(1px) scale(0.98); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* Content entering — used when ArtifactView mounts and on fullscreen expand */
+/* Content entering — bouncy spring */
 @keyframes grow-in {
-  from { opacity: 0; transform: scale(0.97); }
-  to   { opacity: 1; transform: scale(1);    }
+  0%   { opacity: 0; transform: scale(0.92); }
+  55%  { opacity: 1; transform: scale(1.03); }
+  78%  { transform: scale(0.99); }
+  100% { opacity: 1; transform: scale(1); }
 }
 
-/* Tab pill entering from the left */
+/* Tab pill springing in */
 @keyframes tab-in {
-  from { opacity: 0; transform: translateX(-8px); }
-  to   { opacity: 1; transform: translateX(0);     }
+  0%   { opacity: 0; transform: scale(0.82) translateX(-6px); }
+  55%  { opacity: 1; transform: scale(1.06) translateX(2px); }
+  78%  { transform: scale(0.97) translateX(-1px); }
+  100% { opacity: 1; transform: scale(1) translateX(0); }
 }
 
-/* Living border pulse on the iframe while streaming */
+/* Violet outer glow pulse while generating */
 @keyframes pulse-glow {
   0%, 100% {
     box-shadow:
-      inset 0 0 0 1px rgba(74, 222, 128, 0.12),
-      0 0 0 0 rgba(74, 222, 128, 0);
+      0 4px 24px rgba(0, 0, 0, 0.07),
+      0 0 0 2px rgba(139, 92, 246, 0.06);
   }
   50% {
     box-shadow:
-      inset 0 0 0 1px rgba(74, 222, 128, 0.45),
-      0 0 20px rgba(74, 222, 128, 0.07);
+      0 4px 32px rgba(0, 0, 0, 0.09),
+      0 0 0 2px rgba(139, 92, 246, 0.28);
   }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { PreviewCanvas } from '@/components/PreviewCanvas'
 import { Button } from '@/components/ui/Button'
@@ -23,16 +23,16 @@ function GrowthIndicator() {
     <div className="flex h-full flex-col items-center justify-center gap-5">
       <div className="relative flex h-24 w-24 items-center justify-center">
         <span
-          className="absolute inset-0 m-auto h-24 w-24 animate-ping rounded-full bg-green-400/10"
+          className="absolute inset-0 m-auto h-24 w-24 animate-ping rounded-full bg-violet-400/10"
           style={{ animationDuration: '2.2s', animationDelay: '0.6s' }}
         />
         <span
-          className="absolute inset-0 m-auto h-14 w-14 animate-ping rounded-full bg-green-400/15"
+          className="absolute inset-0 m-auto h-14 w-14 animate-ping rounded-full bg-violet-400/15"
           style={{ animationDuration: '2.2s', animationDelay: '0.3s' }}
         />
-        <span className="h-5 w-5 animate-pulse rounded-full bg-green-400/80 shadow-[0_0_20px_rgba(74,222,128,0.55)]" />
+        <span className="h-5 w-5 animate-pulse rounded-full bg-violet-500 shadow-[0_0_24px_rgba(139,92,246,0.5)]" />
       </div>
-      <p className="tracking-[0.25em] text-xs uppercase text-stone-600">Growing</p>
+      <p className="tracking-[0.25em] text-xs uppercase text-slate-400">Growing</p>
     </div>
   )
 }
@@ -70,6 +70,17 @@ export function ArtifactView({
   const [expandedTabId, setExpandedTabId] = useState<string | null>(null)
   const isExpanded = expandedTabId === tab?.id
 
+  // Increment to force the in-flow div to remount (and replay grow-in) when
+  // the fullscreen overlay closes.
+  const [inFlowKey, setInFlowKey] = useState(0)
+  const wasExpandedRef = useRef(false)
+  useEffect(() => {
+    if (wasExpandedRef.current && !isExpanded) {
+      setInFlowKey((k) => k + 1)
+    }
+    wasExpandedRef.current = isExpanded
+  }, [isExpanded])
+
   useEffect(() => {
     if (!isExpanded) return
     const handleKey = (event: KeyboardEvent): void => {
@@ -86,12 +97,12 @@ export function ArtifactView({
   const canExpand = tab.status !== 'error' && Boolean(code)
 
   const headerContent = (expanded: boolean) => (
-    <div className="flex min-w-0 items-center justify-between gap-2 border-b border-stone-800 px-4 py-2">
-      <span className="flex min-w-0 items-center gap-2 text-xs text-stone-400">
-        <span className="truncate">{tab.title || 'Untitled view'}</span>
+    <div className="flex min-w-0 items-center justify-between gap-2 border-b border-slate-100 px-4 py-2.5">
+      <span className="flex min-w-0 items-center gap-2 text-xs text-slate-500">
+        <span className="truncate font-medium text-slate-700">{tab.title || 'Untitled view'}</span>
         {isApplyingEdit ? (
-          <span className="flex shrink-0 items-center gap-1.5 text-green-400/80">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-400" />
+          <span className="flex shrink-0 items-center gap-1.5 text-violet-500">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-violet-500" />
             Applying…
           </span>
         ) : null}
@@ -99,22 +110,22 @@ export function ArtifactView({
       <div className="flex shrink-0 items-center gap-1">
         {tab.status !== 'error' ? (
           <Disclosure label="Details">
-            <div className="mb-2 flex items-center gap-2">
-              <span className={`rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wider ${
+            <div className="mb-3 flex items-center gap-2">
+              <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider ${
                 tab.generationMode === 'dynamic'
-                  ? 'bg-green-400/15 text-green-400'
-                  : 'bg-white/10 text-stone-400'
+                  ? 'bg-violet-100 text-violet-600'
+                  : 'bg-slate-100 text-slate-500'
               }`}>
-                {tab.generationMode === 'dynamic' ? 'Dynamic' : 'Static'}
+                {tab.generationMode === 'dynamic' ? 'Dashboard' : 'Canvas'}
               </span>
-              <span className="text-[10px] uppercase tracking-wider text-stone-600">
+              <span className="text-[10px] uppercase tracking-wider text-slate-400">
                 {tab.uiType === 'svg_diagram' ? 'SVG' : 'HTML'}
               </span>
             </div>
             {explanation ? (
-              <p className="break-words text-xs text-stone-300">{explanation}</p>
+              <p className="break-words text-xs leading-relaxed text-slate-600">{explanation}</p>
             ) : (
-              <p className="text-xs text-stone-600 italic">No description</p>
+              <p className="text-xs italic text-slate-400">No description</p>
             )}
           </Disclosure>
         ) : null}
@@ -123,7 +134,7 @@ export function ArtifactView({
             type="button"
             onClick={() => { setExpandedTabId(expanded ? null : tab.id) }}
             title={expanded ? 'Collapse (Esc)' : 'Expand to full page'}
-            className="rounded p-1.5 text-stone-500 transition-colors hover:bg-white/10 hover:text-stone-200"
+            className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
           >
             {expanded ? <CollapseIcon /> : <ExpandIcon />}
           </button>
@@ -136,12 +147,12 @@ export function ArtifactView({
     <div
       key={tab.id}
       className={`flex-1 overflow-hidden transition-shadow duration-700 ${
-        isLoading && !isAwaitingFirstContent ? 'animate-[pulse-glow_1.8s_ease-in-out_infinite] rounded-sm' : ''
+        isLoading && !isAwaitingFirstContent ? 'animate-[pulse-glow_1.8s_ease-in-out_infinite]' : ''
       }`}
     >
       {tab.status === 'error' ? (
         <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
-          <p className="text-sm text-red-400">{tab.error ?? 'Generation failed.'}</p>
+          <p className="text-sm text-red-500">{tab.error ?? 'Generation failed.'}</p>
           <div className="flex gap-2">
             <Button onClick={() => { onRetry(tab) }} disabled={isLoading}>Retry</Button>
             <Button variant="ghost" onClick={() => { onCancel(tab) }} disabled={isLoading}>Cancel</Button>
@@ -157,13 +168,13 @@ export function ArtifactView({
 
   return (
     <>
-      {/* Normal (in-flow) view */}
-      <div className="flex h-full flex-col animate-[grow-in_280ms_ease-out_both]">
+      {/* Normal (in-flow) view — key increments on fullscreen exit to replay grow-in */}
+      <div key={inFlowKey} className="flex h-full flex-col animate-[grow-in_500ms_cubic-bezier(0.34,1.56,0.64,1)_both]">
         {headerContent(false)}
         {isExpanded ? (
-          <div className="flex flex-1 items-center justify-center gap-2 text-xs text-stone-700">
+          <div className="flex flex-1 items-center justify-center gap-2 text-xs text-slate-400">
             <span>Expanded</span>
-            <kbd className="rounded bg-stone-900 px-1.5 py-0.5 font-mono text-[10px] text-stone-500">Esc</kbd>
+            <kbd className="rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] text-slate-500">Esc</kbd>
             <span>to collapse</span>
           </div>
         ) : (
@@ -174,7 +185,7 @@ export function ArtifactView({
       {/* Full-page overlay via portal */}
       {isExpanded
         ? createPortal(
-            <div className="fixed inset-0 z-50 flex flex-col bg-stone-950 animate-[grow-in_260ms_cubic-bezier(0.34,1.08,0.64,1)_both]">
+            <div className="fixed inset-0 z-50 flex flex-col bg-white animate-[grow-in_280ms_cubic-bezier(0.34,1.4,0.64,1)_both]">
               {headerContent(true)}
               {canvasContent}
             </div>,

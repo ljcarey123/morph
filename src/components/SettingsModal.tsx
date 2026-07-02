@@ -12,11 +12,11 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-stone-950/70">
-      <div className="w-96 rounded border border-stone-800 bg-stone-900 p-4">
-        <h2 className="mb-3 text-sm font-medium text-stone-100">Settings</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/20 backdrop-blur-sm">
+      <div className="w-96 rounded-2xl border border-slate-100 bg-white p-6 shadow-[0_8px_40px_rgba(0,0,0,0.12)]">
+        <h2 className="mb-5 text-base font-semibold text-slate-800">Settings</h2>
 
-        <label className="mb-1 block text-xs text-stone-400" htmlFor="api-key">
+        <label className="mb-1.5 block text-xs font-medium text-slate-500" htmlFor="api-key">
           Gemini API key
         </label>
         <input
@@ -27,9 +27,9 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             setApiKey(event.target.value || null)
           }}
           placeholder="Paste your API key"
-          className="mb-4 w-full rounded border border-stone-800 bg-stone-950 px-3 py-2 text-sm text-stone-100 outline-none"
+          className="mb-3 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-800 outline-none transition-all placeholder:text-slate-400 focus:border-violet-300 focus:ring-2 focus:ring-violet-100"
         />
-        <p className="mb-4 text-xs text-stone-500">
+        <p className="mb-5 text-xs leading-relaxed text-slate-400">
           Stored only in your browser, sent with each generation request, never persisted
           server-side.
         </p>
@@ -37,7 +37,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         <button
           type="button"
           onClick={onClose}
-          className="w-full rounded bg-amber-500 px-3 py-2 text-sm font-medium text-stone-950 hover:bg-amber-400"
+          className="w-full rounded-xl bg-violet-500 px-3 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-violet-600 active:scale-[0.98]"
         >
           Done
         </button>
