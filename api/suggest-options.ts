@@ -7,11 +7,26 @@ import { PROMPT_TAGS, UNTRUSTED_DATA_NOTICE, sanitizeText, wrapInTag } from './_
 export const config = { runtime: 'edge' }
 
 const SYSTEM_PROMPT =
-  "You suggest build directions for a note-taking app's UI generator. Given a " +
-  "note's content, propose exactly 3 distinct, concrete directions for a small " +
-  'HTML/SVG visualization that would suit this note (e.g. a timeline, a comparison ' +
-  'table, a mind map) tailored to what the note is actually about. Keep each label ' +
-  'short and each description to one sentence.\n\n' +
+  "You suggest visualization ideas for a note-taking app's UI generator. Given a " +
+  "note's content, propose exactly 3 distinct, imaginative directions — each one " +
+  'specific to what the note is actually about, referencing real names, dates, ' +
+  'figures, or themes from the content rather than generic placeholders.\n\n' +
+  'Format:\n' +
+  '- label: 2–4 word title for the chip (e.g. "Legion Deployment Map")\n' +
+  '- description: a vivid 1–2 sentence prompt written as a direct instruction to ' +
+  'the UI generator — specific enough that a designer could execute it without ' +
+  'reading the note. Reference actual content (names, numbers, events). Start with ' +
+  'an action verb ("Draw", "Build", "Show", "Render", "Map", "Chart"). ' +
+  'Aim for 25–50 words.\n' +
+  '- mode: pick "canvas" or "dashboard".\n' +
+  '  Use "canvas" for any primarily visual output: maps, diagrams, charts, timelines, ' +
+  'SVG graphics, network graphs, infographics, annotated illustrations.\n' +
+  '  Use "dashboard" only when the suggestion is specifically a structured data-exploration ' +
+  'interface: a card grid of entities with stats, a tabbed multi-section view, or a control ' +
+  'panel with counters or toggles the user will operate (e.g. "adjust troop counts", ' +
+  '"toggle province visibility").\n\n' +
+  'Aim for variety across the 3 suggestions — different modes, chart types, or visual metaphors. ' +
+  'Do not suggest a table or plain timeline every time.\n\n' +
   UNTRUSTED_DATA_NOTICE
 
 const requestSchema = z.object({

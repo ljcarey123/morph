@@ -3,15 +3,14 @@ import { useNotesStore } from '@/store/useNotesStore'
 import { useSuggestOptions } from '@/hooks/useSuggestOptions'
 import { Button } from '@/components/ui/Button'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
-import type { ClassifyIntent } from '@/schemas/classifyIntent'
+
+type GenerationMode = 'canvas' | 'dashboard'
 
 interface ArtifactComposerProps {
   noteId: string
   generate: (content: string, direction: string, previousCode?: string) => void
   generateDynamic: (content: string, direction: string) => Promise<void>
-  fetchAction: (message: string, currentArtifact: string) => Promise<ClassifyIntent | undefined>
   isLoading: boolean
-  isClassifying: boolean
   error: Error | undefined
 }
 
@@ -19,15 +18,14 @@ export function ArtifactComposer({
   noteId,
   generate,
   generateDynamic,
-  fetchAction,
   isLoading,
-  isClassifying,
   error,
 }: ArtifactComposerProps) {
   const note = useNotesStore((state) => state.notes[noteId])
   const setSuggestedOptions = useNotesStore((state) => state.setSuggestedOptions)
   const { fetchOptions, isLoading: isLoadingOptions } = useSuggestOptions()
   const [message, setMessage] = useState('')
+  const [mode, setMode] = useState<GenerationMode>('canvas')
 
   const runFetchOptions = useCallback(
     async (content: string): Promise<void> => {
@@ -46,23 +44,20 @@ export function ArtifactComposer({
 
   if (!note) return null
 
-  const activeTab = note.tabs.find((tab) => tab.id === note.activeTabId)
-  const busy = isLoading || isClassifying
+  const busy = isLoading
 
-  const handleSubmit = async (): Promise<void> => {
+  const handleSubmit = (): void => {
     const text = message.trim()
     if (text.length === 0 || busy) return
     setMessage('')
-
-    const intent = await fetchAction(text, activeTab?.direction ?? '')
-
-    if (intent?.mode === 'dynamic') {
+    if (mode === 'dashboard') {
       void generateDynamic(note.content, text)
     } else {
       generate(note.content, text)
     }
   }
 
+  const activeTab = note.tabs.find((tab) => tab.id === note.activeTabId)
   const hasChips = note.suggestedOptions.length > 0 || Boolean(activeTab?.suggestedActions.some(Boolean))
 
   return (
@@ -96,7 +91,8 @@ export function ArtifactComposer({
                   className="animate-[chip-in_220ms_ease-out_both]"
                   style={{ animationDelay: `${(index * 30).toString()}ms` }}
                   onClick={() => {
-                    setMessage(option.label)
+                    setMessage(option.description)
+                    setMode(option.mode)
                   }}
                   disabled={busy}
                   title={option.description}
@@ -130,6 +126,23 @@ export function ArtifactComposer({
       ) : null}
 
       <div className="flex gap-2">
+        <div className="flex shrink-0 overflow-hidden rounded border border-stone-700/60 text-xs">
+          {(['canvas', 'dashboard'] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => { setMode(m) }}
+              disabled={busy}
+              className={`px-2.5 py-1.5 capitalize transition-colors disabled:opacity-40 ${
+                mode === m
+                  ? 'bg-stone-700 text-stone-100'
+                  : 'text-stone-500 hover:text-stone-300'
+              }`}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
         <input
           type="text"
           value={message}
@@ -139,7 +152,7 @@ export function ArtifactComposer({
           onKeyDown={(event) => {
             if (event.key === 'Enter' && !event.shiftKey) {
               event.preventDefault()
-              void handleSubmit()
+              handleSubmit()
             }
           }}
           placeholder="Describe a new view, or tweak the one you're looking at…"
@@ -147,9 +160,7 @@ export function ArtifactComposer({
           className="flex-1 rounded border border-stone-700/60 bg-stone-900 px-3 py-2 text-sm text-stone-100 outline-none transition-[border-color,box-shadow] duration-200 focus:border-green-400/30 focus:shadow-[0_0_0_1px_rgba(74,222,128,0.15)] disabled:opacity-40"
         />
         <Button
-          onClick={() => {
-            void handleSubmit()
-          }}
+          onClick={handleSubmit}
           disabled={busy || message.trim().length === 0}
         >
           {busy ? <LoadingSpinner size="sm" /> : 'Send'}

@@ -234,7 +234,7 @@ describe('POST /api/generate-ui', () => {
     expect(objectOutputMock).toHaveBeenCalledWith({ schema: editOutputSchema })
   })
 
-  it('enforces no-interactivity rule and does not include morph-* component docs', async () => {
+  it('includes morph-* component docs in branch mode but not raw script/onclick', async () => {
     streamTextMock.mockReturnValue({
       toTextStreamResponse: () => new Response('stream-body'),
     })
@@ -248,10 +248,29 @@ describe('POST /api/generate-ui', () => {
     await handler(req)
 
     const callArgs = streamTextMock.mock.calls[0]?.[0] as { system: string }
+    expect(callArgs.system).toContain('morph-toggle')
+    expect(callArgs.system).toContain('morph-tabs')
+    expect(callArgs.system).toContain('data-state-key')
+    expect(callArgs.system).not.toContain('No interactivity')
+    expect(callArgs.system).toContain('ONLY interactive elements allowed')
+  })
+
+  it('keeps morph-* out of edit-mode prompt — edits patch existing static HTML', async () => {
+    streamTextMock.mockReturnValue({
+      toTextStreamResponse: () => new Response('stream-body'),
+    })
+
+    const req = new Request('http://localhost/api/generate-ui', {
+      method: 'POST',
+      headers: { 'x-user-api-key': 'user-supplied-key' },
+      body: JSON.stringify({ content: 'note text', direction: 'Make it blue', mode: 'edit' }),
+    })
+
+    await handler(req)
+
+    const callArgs = streamTextMock.mock.calls[0]?.[0] as { system: string }
     expect(callArgs.system).toContain('No interactivity')
-    expect(callArgs.system).not.toContain('morph-toggle')
-    expect(callArgs.system).not.toContain('morph-tabs')
-    expect(callArgs.system).not.toContain('data-state-key')
+    expect(callArgs.system).not.toContain('Available components')
   })
 
   it('wraps untrusted fields in delimiter tags and warns the model not to follow them', async () => {

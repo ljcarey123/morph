@@ -1,7 +1,6 @@
 import { useNotesStore } from '@/store/useNotesStore'
 import { useGenerativeUI } from '@/hooks/useGenerativeUI'
 import { useGenerativeDynamicUI } from '@/hooks/useGenerativeDynamicUI'
-import { useClassifyIntent } from '@/hooks/useClassifyIntent'
 import { useThrottledValue } from '@/hooks/useThrottledValue'
 import { ArtifactTabs } from '@/components/ArtifactTabs'
 import { ArtifactView } from '@/components/ArtifactView'
@@ -24,11 +23,9 @@ export function NoteWorkspace({ noteId }: NoteWorkspaceProps) {
     isLoading: isDynamicLoading,
     error: dynamicError,
   } = useGenerativeDynamicUI(noteId)
-  const { fetchAction, isLoading: isClassifying } = useClassifyIntent()
-
   const activeTab = note?.tabs.find((tab) => tab.id === note.activeTabId)
   const combinedIsLoading = isLoading || isDynamicLoading
-  const isAnyBusy = combinedIsLoading || isClassifying
+  const isAnyBusy = combinedIsLoading
   const isStreamingActiveTab = combinedIsLoading && activeTab?.status === 'streaming'
   const isBranchStreamingActiveTab = !!activeTab && isStreamingActiveTab && activeTab.mode !== 'edit'
   const isApplyingEdit = !!activeTab && isStreamingActiveTab && activeTab.mode === 'edit'
@@ -57,7 +54,7 @@ export function NoteWorkspace({ noteId }: NoteWorkspaceProps) {
 
   return (
     <div
-      className={`flex h-full flex-1 flex-col transition-[box-shadow] duration-500${isAnyBusy ? ' animate-[pulse-glow_2s_ease-in-out_infinite]' : ''}`}
+      className={`flex h-full min-w-0 flex-1 flex-col transition-[box-shadow] duration-500${isAnyBusy ? ' animate-[pulse-glow_2s_ease-in-out_infinite]' : ''}`}
     >
       <ArtifactTabs noteId={noteId} />
       <div className="flex-1 overflow-auto">
@@ -82,9 +79,7 @@ export function NoteWorkspace({ noteId }: NoteWorkspaceProps) {
         noteId={noteId}
         generate={generate}
         generateDynamic={generateDynamic}
-        fetchAction={fetchAction}
         isLoading={combinedIsLoading}
-        isClassifying={isClassifying}
         error={error ?? dynamicError}
       />
     </div>

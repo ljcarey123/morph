@@ -3,10 +3,6 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useNotesStore } from '@/store/useNotesStore'
 import { ArtifactComposer } from './ArtifactComposer'
-import type { ClassifyIntent } from '@/schemas/classifyIntent'
-
-const STATIC_INTENT: ClassifyIntent = { action: 'create', mode: 'static' }
-const DYNAMIC_INTENT: ClassifyIntent = { action: 'create', mode: 'dynamic' }
 
 function mockSuggestOptions() {
   vi.stubGlobal(
@@ -32,7 +28,7 @@ describe('ArtifactComposer', () => {
           updatedAt: 1,
           tabs: [],
           activeTabId: null,
-          suggestedOptions: [{ label: 'Timeline', description: 'A chronological view.' }],
+          suggestedOptions: [{ label: 'Timeline', description: 'A chronological view.', mode: 'canvas' as const }],
         },
       },
       activeNoteId: 'a',
@@ -48,9 +44,7 @@ describe('ArtifactComposer', () => {
         noteId="missing"
         generate={vi.fn()}
         generateDynamic={vi.fn()}
-        fetchAction={vi.fn().mockResolvedValue(STATIC_INTENT)}
         isLoading={false}
-        isClassifying={false}
         error={undefined}
       />,
     )
@@ -66,20 +60,18 @@ describe('ArtifactComposer', () => {
         noteId="a"
         generate={generate}
         generateDynamic={vi.fn()}
-        fetchAction={vi.fn().mockResolvedValue(STATIC_INTENT)}
         isLoading={false}
-        isClassifying={false}
         error={undefined}
       />,
     )
 
     await user.click(screen.getByRole('button', { name: 'Timeline' }))
 
-    expect(screen.getByPlaceholderText(/Describe a new view/)).toHaveValue('Timeline')
+    expect(screen.getByPlaceholderText(/Describe a new view/)).toHaveValue('A chronological view.')
     expect(generate).not.toHaveBeenCalled()
   })
 
-  it('classifies and calls generate for a static artifact', async () => {
+  it('calls generate when Canvas mode is active (default)', async () => {
     const generate = vi.fn()
     const user = userEvent.setup()
     render(
@@ -87,9 +79,7 @@ describe('ArtifactComposer', () => {
         noteId="a"
         generate={generate}
         generateDynamic={vi.fn()}
-        fetchAction={vi.fn().mockResolvedValue(STATIC_INTENT)}
         isLoading={false}
-        isClassifying={false}
         error={undefined}
       />,
     )
@@ -102,7 +92,7 @@ describe('ArtifactComposer', () => {
     })
   })
 
-  it('calls generateDynamic when classified as dynamic', async () => {
+  it('calls generateDynamic when Dashboard toggle is selected', async () => {
     const generateDynamic = vi.fn().mockResolvedValue(undefined)
     const generate = vi.fn()
     const user = userEvent.setup()
@@ -111,13 +101,12 @@ describe('ArtifactComposer', () => {
         noteId="a"
         generate={generate}
         generateDynamic={generateDynamic}
-        fetchAction={vi.fn().mockResolvedValue(DYNAMIC_INTENT)}
         isLoading={false}
-        isClassifying={false}
         error={undefined}
       />,
     )
 
+    await user.click(screen.getByRole('button', { name: 'dashboard' }))
     await user.type(screen.getByPlaceholderText(/Describe a new view/), 'Show me a tabbed dashboard')
     await user.click(screen.getByRole('button', { name: 'Send' }))
 
@@ -127,7 +116,7 @@ describe('ArtifactComposer', () => {
     expect(generate).not.toHaveBeenCalled()
   })
 
-  it('falls back to static generate when fetchAction returns undefined', async () => {
+  it('defaults to canvas mode and calls generate without toggling', async () => {
     const generate = vi.fn()
     const user = userEvent.setup()
     render(
@@ -135,9 +124,7 @@ describe('ArtifactComposer', () => {
         noteId="a"
         generate={generate}
         generateDynamic={vi.fn()}
-        fetchAction={vi.fn().mockResolvedValue(undefined)}
         isLoading={false}
-        isClassifying={false}
         error={undefined}
       />,
     )
@@ -158,9 +145,7 @@ describe('ArtifactComposer', () => {
         noteId="a"
         generate={generate}
         generateDynamic={vi.fn()}
-        fetchAction={vi.fn().mockResolvedValue(STATIC_INTENT)}
         isLoading={false}
-        isClassifying={false}
         error={undefined}
       />,
     )
@@ -178,9 +163,7 @@ describe('ArtifactComposer', () => {
         noteId="a"
         generate={vi.fn()}
         generateDynamic={vi.fn()}
-        fetchAction={vi.fn().mockResolvedValue(STATIC_INTENT)}
         isLoading={false}
-        isClassifying={false}
         error={new Error('boom')}
       />,
     )

@@ -72,6 +72,7 @@ export function useGenerativeUI(noteId: string) {
           code: patched,
           explanation: object.explanation,
           suggestedActions: object.suggested_actions,
+          generationMode: 'static',
           status: 'done',
           error: undefined,
         })
@@ -84,6 +85,7 @@ export function useGenerativeUI(noteId: string) {
           code: HtmlPatcher.normalize(object.code),
           explanation: object.explanation,
           suggestedActions: object.suggested_actions,
+          generationMode: 'static',
           status: 'done',
           error: undefined,
         })

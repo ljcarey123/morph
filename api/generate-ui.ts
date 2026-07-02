@@ -2,9 +2,23 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { Output, streamText } from 'ai'
 import { z } from 'zod'
 import { branchOutputSchema, editOutputSchema } from '../src/schemas/generativeUi'
+import { COMPONENT_REGISTRY } from '../src/sandbox-runtime/registry'
 import { PROMPT_TAGS, UNTRUSTED_DATA_NOTICE, sanitizeText, wrapInTag } from './_shared/sanitize'
 
 export const config = { runtime: 'edge' }
+
+function buildComponentDocs(): string {
+  return COMPONENT_REGISTRY.map((c) => {
+    const attrs = c.attributes.length
+      ? c.attributes.map((a) => `      ${a.name} (${a.type}): ${a.description}`).join('\n')
+      : '      (no custom attributes)'
+    return (
+      `  <${c.tag}>: ${c.description}\n` +
+      `    Attributes:\n${attrs}\n` +
+      `    Example:\n      ${c.example.split('\n').join('\n      ')}`
+    )
+  }).join('\n\n')
+}
 
 const ROLE_INTRO =
   "You are a UI generation engine. Given a note's markdown content and a requested direction, " +
@@ -12,11 +26,23 @@ const ROLE_INTRO =
   'explanation of your reasoning, and up to 3 suggested next actions. Return clean HTML or SVG ' +
   'only — no markdown code fences.'
 
-const RENDERING_RULES = [
-  'No interactivity: never generate <script> tags, onclick/onchange/etc. event-handler ' +
-    'attributes, javascript: URLs, <form> submissions, or custom elements — all of these are ' +
-    'stripped or broken before render. Every element you draw is purely static; clicking it ' +
-    'does nothing. Anything that implies user interaction belongs in suggested_actions instead.',
+const BRANCH_INTERACTIVITY_RULE =
+  'Interactivity: you may embed the following trusted <morph-*> custom elements for lightweight ' +
+  'interactive behavior — these are the ONLY interactive elements allowed. Never generate raw ' +
+  '<script> tags, onclick/onchange/etc. event-handler attributes, javascript: URLs, or <form> ' +
+  'submissions — those are stripped before render and will silently break your view.\n\n' +
+  'Available components:\n\n' +
+  buildComponentDocs() +
+  '\n\nOnly add morph-* components when they genuinely improve the view for the direction given. ' +
+  'A chart, timeline, or diagram is usually better as a purely visual layout than a tabbed one.'
+
+const EDIT_NO_INTERACTIVITY_RULE =
+  'No interactivity: when patching an existing view, never add <script> tags, ' +
+  'onclick/onchange/etc. event-handler attributes, javascript: URLs, or <form> submissions — ' +
+  'all are stripped before render. You may keep or adjust existing morph-* elements that are ' +
+  'already in the document, but do not introduce new ones unless the direction explicitly asks.'
+
+const SHARED_RENDERING_RULES = [
   'Contrast: always pair every background color with an explicitly contrasting text color on ' +
     'the same element or its container, and vice versa — never rely on browser or inherited ' +
     'defaults for either, since unstyled text can end up invisible against an unexpected ' +
@@ -42,15 +68,18 @@ const RENDERING_RULES = [
     'missing is a failed response.',
 ]
 
-const SHARED_RULES =
-  ROLE_INTRO +
-  '\n\n' +
-  UNTRUSTED_DATA_NOTICE +
-  '\n\n' +
-  RENDERING_RULES.map((rule) => `- ${rule}`).join('\n')
+function buildSharedRules(interactivityRule: string): string {
+  return (
+    ROLE_INTRO +
+    '\n\n' +
+    UNTRUSTED_DATA_NOTICE +
+    '\n\n' +
+    [interactivityRule, ...SHARED_RENDERING_RULES].map((rule) => `- ${rule}`).join('\n')
+  )
+}
 
 const BRANCH_SYSTEM_PROMPT =
-  SHARED_RULES +
+  buildSharedRules(BRANCH_INTERACTIVITY_RULE) +
   '\n\n' +
   'You are designing a fresh view for the given direction. If previous code is provided, treat ' +
   'it as loose context for continuity, not a constraint — you have full latitude to redesign ' +
@@ -59,7 +88,7 @@ const BRANCH_SYSTEM_PROMPT =
   'return "target_id" or "replacement_html".'
 
 const EDIT_SYSTEM_PROMPT =
-  SHARED_RULES +
+  buildSharedRules(EDIT_NO_INTERACTIVITY_RULE) +
   '\n\n' +
   'You are refining the SAME existing view the user is already looking at, with a small, ' +
   'targeted tweak. Always respond with a patch — never the full "code"/"ui_type" fields:\n' +

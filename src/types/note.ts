@@ -21,6 +21,7 @@ export interface GeneratedUITab {
   direction: string
   previousCode?: string
   mode?: 'branch' | 'edit'
+  generationMode?: 'static' | 'dynamic'
   createdAt: number
   status: 'streaming' | 'done' | 'error'
   error?: string

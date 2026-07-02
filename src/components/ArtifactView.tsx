@@ -87,19 +87,35 @@ export function ArtifactView({
 
   const headerContent = (expanded: boolean) => (
     <div className="flex min-w-0 items-center justify-between gap-2 border-b border-stone-800 px-4 py-2">
-      <span className="flex min-w-0 items-center gap-2 truncate text-xs text-stone-400">
-        {tab.title || 'Untitled view'}
+      <span className="flex min-w-0 items-center gap-2 text-xs text-stone-400">
+        <span className="truncate">{tab.title || 'Untitled view'}</span>
         {isApplyingEdit ? (
-          <span className="flex items-center gap-1.5 text-green-400/80">
+          <span className="flex shrink-0 items-center gap-1.5 text-green-400/80">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-400" />
             Applying…
           </span>
         ) : null}
       </span>
       <div className="flex shrink-0 items-center gap-1">
-        {explanation && tab.status !== 'error' ? (
+        {tab.status !== 'error' ? (
           <Disclosure label="Details">
-            <p className="text-xs text-stone-300">{explanation}</p>
+            <div className="mb-2 flex items-center gap-2">
+              <span className={`rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wider ${
+                tab.generationMode === 'dynamic'
+                  ? 'bg-green-400/15 text-green-400'
+                  : 'bg-white/10 text-stone-400'
+              }`}>
+                {tab.generationMode === 'dynamic' ? 'Dynamic' : 'Static'}
+              </span>
+              <span className="text-[10px] uppercase tracking-wider text-stone-600">
+                {tab.uiType === 'svg_diagram' ? 'SVG' : 'HTML'}
+              </span>
+            </div>
+            {explanation ? (
+              <p className="break-words text-xs text-stone-300">{explanation}</p>
+            ) : (
+              <p className="text-xs text-stone-600 italic">No description</p>
+            )}
           </Disclosure>
         ) : null}
         {canExpand ? (

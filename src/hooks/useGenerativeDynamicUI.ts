@@ -39,6 +39,7 @@ export function useGenerativeDynamicUI(noteId: string) {
           code,
           explanation: configData.title ?? direction,
           suggestedActions: configData.suggested_actions.slice(0, 3),
+          generationMode: 'dynamic',
           status: 'done',
           error: undefined,
         })

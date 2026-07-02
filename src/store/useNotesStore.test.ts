@@ -191,7 +191,7 @@ describe('useNotesStore', () => {
 
   it('sets the suggested options for a note', () => {
     const id = useNotesStore.getState().createNote()
-    const options = [{ label: 'Comparison table', description: 'Side-by-side comparison.' }]
+    const options = [{ label: 'Comparison table', description: 'Side-by-side comparison.', mode: 'canvas' as const }]
 
     useNotesStore.getState().setSuggestedOptions(id, options)
 
