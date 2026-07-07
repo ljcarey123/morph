@@ -1,13 +1,36 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { notesDb } from '@/lib/notesDb'
 import type { GeneratedUITab, Note } from '@/types/note'
 import type { SuggestOptions } from '@/schemas/suggestOptions'
+
+// Module-level debounce timers for note content updates — one per note.
+const contentSyncTimers = new Map<string, ReturnType<typeof setTimeout>>()
+
+function debounceContentSync(noteId: string, fn: () => void) {
+  const existing = contentSyncTimers.get(noteId)
+  if (existing) clearTimeout(existing)
+  contentSyncTimers.set(noteId, setTimeout(() => {
+    contentSyncTimers.delete(noteId)
+    fn()
+  }, 1000))
+}
+
+// Returns the sort position of a note within the current noteOrder.
+function sortOrderOf(noteOrder: string[], noteId: string): number {
+  const idx = noteOrder.indexOf(noteId)
+  return idx === -1 ? noteOrder.length : idx
+}
 
 interface NotesState {
   notes: Record<string, Note>
   activeNoteId: string | null
   userApiKey: string | null
   noteOrder: string[]
+  // Auth & sync
+  hydrateFromSupabase: (notes: Note[], noteOrder: string[]) => void
+  clearNotes: () => void
+  // Note CRUD
   createNote: () => string
   updateNoteContent: (id: string, content: string) => void
   updateNoteTitle: (id: string, title: string) => void
@@ -15,6 +38,7 @@ interface NotesState {
   setActiveNoteId: (id: string | null) => void
   setApiKey: (key: string | null) => void
   reorderNotes: (orderedIds: string[]) => void
+  // Tab lifecycle
   addPendingTab: (id: string, direction: string) => string
   patchGeneratedTab: (
     id: string,
@@ -29,11 +53,20 @@ interface NotesState {
 
 export const useNotesStore = create<NotesState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       notes: {},
       activeNoteId: null,
       userApiKey: null,
       noteOrder: [],
+
+      hydrateFromSupabase: (notes, noteOrder) => {
+        const notesMap = Object.fromEntries(notes.map((n) => [n.id, n]))
+        set({ notes: notesMap, noteOrder, activeNoteId: null })
+      },
+
+      clearNotes: () => {
+        set({ notes: {}, noteOrder: [], activeNoteId: null })
+      },
 
       createNote: () => {
         const id = crypto.randomUUID()
@@ -53,6 +86,7 @@ export const useNotesStore = create<NotesState>()(
           activeNoteId: id,
           noteOrder: [id, ...state.noteOrder],
         }))
+        void notesDb.upsert(note, 0).catch(console.error)
         return id
       },
 
@@ -65,6 +99,13 @@ export const useNotesStore = create<NotesState>()(
               ...state.notes,
               [id]: { ...note, content, updatedAt: Date.now() },
             },
+          }
+        })
+        debounceContentSync(id, () => {
+          const state = get()
+          const note = state.notes[id]
+          if (note) {
+            void notesDb.upsert(note, sortOrderOf(state.noteOrder, id)).catch(console.error)
           }
         })
       },
@@ -80,6 +121,11 @@ export const useNotesStore = create<NotesState>()(
             },
           }
         })
+        const state = get()
+        const note = state.notes[id]
+        if (note) {
+          void notesDb.upsert({ ...note, title }, sortOrderOf(state.noteOrder, id)).catch(console.error)
+        }
       },
 
       deleteNote: (id) => {
@@ -89,10 +135,12 @@ export const useNotesStore = create<NotesState>()(
           const activeNoteId = state.activeNoteId === id ? null : state.activeNoteId
           return { notes, activeNoteId, noteOrder: state.noteOrder.filter((i) => i !== id) }
         })
+        void notesDb.delete(id).catch(console.error)
       },
 
       reorderNotes: (orderedIds) => {
         set({ noteOrder: orderedIds })
+        void notesDb.upsertOrder(orderedIds).catch(console.error)
       },
 
       setActiveNoteId: (id) => {
@@ -131,6 +179,7 @@ export const useNotesStore = create<NotesState>()(
             },
           }
         })
+        // Do not sync — streaming tabs are never written to Supabase
         return tabId
       },
 
@@ -156,6 +205,14 @@ export const useNotesStore = create<NotesState>()(
             },
           }
         })
+        // Only sync once generation is complete — never sync streaming state
+        if (patch.status !== 'streaming') {
+          const state = get()
+          const note = state.notes[id]
+          if (note) {
+            void notesDb.upsert(note, sortOrderOf(state.noteOrder, id)).catch(console.error)
+          }
+        }
       },
 
       removeTab: (id, tabId) => {
@@ -173,6 +230,11 @@ export const useNotesStore = create<NotesState>()(
             },
           }
         })
+        const state = get()
+        const note = state.notes[id]
+        if (note) {
+          void notesDb.upsert(note, sortOrderOf(state.noteOrder, id)).catch(console.error)
+        }
       },
 
       setActiveTabId: (id, tabId) => {
@@ -199,6 +261,11 @@ export const useNotesStore = create<NotesState>()(
             },
           }
         })
+        const state = get()
+        const note = state.notes[id]
+        if (note) {
+          void notesDb.upsert({ ...note, suggestedOptions: options }, sortOrderOf(state.noteOrder, id)).catch(console.error)
+        }
       },
 
       patchComponentState: (id, tabId, key, value) => {
@@ -220,8 +287,17 @@ export const useNotesStore = create<NotesState>()(
             },
           }
         })
+        const state = get()
+        const note = state.notes[id]
+        if (note) {
+          void notesDb.upsert(note, sortOrderOf(state.noteOrder, id)).catch(console.error)
+        }
       },
     }),
-    { name: 'morph-notes-store-v4' },
+    {
+      name: 'morph-notes-store-v5',
+      // Only persist the BYOK API key — notes live in Supabase now
+      partialize: (state) => ({ userApiKey: state.userApiKey }),
+    },
   ),
 )

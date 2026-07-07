@@ -16,6 +16,7 @@
   "dependencies": {
     "@ai-sdk/google": "^3.0.83",
     "@ai-sdk/react": "^3.0.210",
+    "@supabase/supabase-js": "^2.110.1",
     "@tailwindcss/vite": "^4.3.1",
     "ai": "^6.0.208",
     "react": "^19.2.6",

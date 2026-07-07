@@ -3,6 +3,7 @@ import { useNotesStore } from '@/store/useNotesStore'
 import { NoteList } from '@/components/NoteList'
 import { NoteWorkspace } from '@/components/NoteWorkspace'
 import { SettingsModal } from '@/components/SettingsModal'
+import { AuthGate } from '@/components/AuthGate'
 
 function ChevronRightIcon() {
   return (
@@ -12,7 +13,7 @@ function ChevronRightIcon() {
   )
 }
 
-function App() {
+function WorkspaceApp() {
   const activeNoteId = useNotesStore((state) => state.activeNoteId)
   const createNote = useNotesStore((state) => state.createNote)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -20,8 +21,7 @@ function App() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#f0eef8]">
-      {/* Sidebar — transitions to a thin strip when collapsed so the expand
-          button has its own layout space and never overlaps the workspace */}
+      {/* Sidebar — transitions to a thin strip when collapsed */}
       <div
         className={`shrink-0 transition-all duration-300 ease-in-out ${isSidebarOpen ? 'w-[272px]' : 'w-10'}`}
       >
@@ -68,6 +68,14 @@ function App() {
         onClose={() => { setIsSettingsOpen(false) }}
       />
     </div>
+  )
+}
+
+function App() {
+  return (
+    <AuthGate>
+      <WorkspaceApp />
+    </AuthGate>
   )
 }
 
