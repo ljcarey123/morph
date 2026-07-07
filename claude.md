@@ -13,7 +13,7 @@ You are acting as a world-class Principal Frontend Engineer helping architect a 
 - **Styling Pipeline:** Tailwind CSS
 - **Orchestration Client:** Vercel AI SDK Core (`ai`) & Client Hooks (`@ai-sdk/react`)
 - **Backend Infrastructure:** Vercel Edge Functions (API Route Engine)
-- **Target LLM Engine:** `gemini-1.5-flash` via `@ai-sdk/google` (optimized for low-latency structural token streaming)
+- **Target LLM Engine:** `gemini-flash-latest` via `@ai-sdk/google` (optimized for low-latency structural token streaming)
 
 ## ⚠️ Implementation Guardrails
 1. **Defensive Partial Rendering:** During active streaming, incoming properties like `partialUI.code` will be truncated, broken, or unclosed strings. Write components defensively. Use safe optional chaining, sensible default fallbacks (`?? ''`), and structurally resilient layouts.
