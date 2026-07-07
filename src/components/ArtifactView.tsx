@@ -12,7 +12,6 @@ interface ArtifactViewProps {
   uiType: string | undefined
   explanation: string | undefined
   isAwaitingFirstContent: boolean
-  isApplyingEdit: boolean
   isLoading: boolean
   onRetry: (tab: GeneratedUITab) => void
   onCancel: (tab: GeneratedUITab) => void
@@ -60,7 +59,6 @@ export function ArtifactView({
   uiType,
   explanation,
   isAwaitingFirstContent,
-  isApplyingEdit,
   isLoading,
   onRetry,
   onCancel,
@@ -100,12 +98,6 @@ export function ArtifactView({
     <div className="flex min-w-0 items-center justify-between gap-2 border-b border-slate-100 px-4 py-2.5">
       <span className="flex min-w-0 items-center gap-2 text-xs text-slate-500">
         <span className="truncate font-medium text-slate-700">{tab.title || 'Untitled view'}</span>
-        {isApplyingEdit ? (
-          <span className="flex shrink-0 items-center gap-1.5 text-violet-500">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-violet-500" />
-            Applying…
-          </span>
-        ) : null}
       </span>
       <div className="flex shrink-0 items-center gap-1">
         {tab.status !== 'error' ? (

@@ -70,7 +70,6 @@ export function NoteWorkspace({ noteId }: NoteWorkspaceProps) {
             uiType={uiType}
             explanation={explanation}
             isAwaitingFirstContent={isAwaitingFirstContent ?? false}
-            isApplyingEdit={false}
             isLoading={combinedIsLoading}
             onRetry={handleRetry}
             onCancel={handleCancel}

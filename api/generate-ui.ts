@@ -6,10 +6,10 @@ import { PROMPT_TAGS, UNTRUSTED_DATA_NOTICE, sanitizeText, wrapInTag } from './_
 
 export const config = { runtime: 'edge' }
 
-// Canvas mode exposes only these two morph-* components.
-// Counters, toggles, accordion, and carousel belong to Dashboard mode exclusively.
+// Canvas mode exposes four morph-* components (tabs, accordion, carousel, tooltip).
+// Stateful counters and toggles belong to Dashboard mode exclusively.
 const CANVAS_COMPONENTS = `\
-INTERACTIVE COMPONENTS — Canvas supports exactly two morph-* custom elements:
+INTERACTIVE COMPONENTS — Canvas supports four morph-* custom elements:
 
 ──────────────────────────────────────────────
 <morph-tabs>  Tab-switched content panels
@@ -49,6 +49,47 @@ Working example:
     Explanation of the term
   </div>
 </morph-tooltip>
+
+──────────────────────────────────────────────
+──────────────────────────────────────────────
+<morph-accordion>  Expand/collapse sections
+──────────────────────────────────────────────
+STRUCTURE RULES:
+  • Each section is a child with data-accordion-item, containing exactly one
+    data-accordion-trigger (the clickable header) and one data-accordion-panel (the body).
+  • Sections start collapsed; add the open attribute to a data-accordion-item to start it expanded.
+  • Add allow-multiple on <morph-accordion> to let more than one section stay open at once.
+
+Working example:
+<morph-accordion id="faq" style="display:block">
+  <div data-accordion-item open style="border-bottom:1px solid #334155">
+    <button data-accordion-trigger style="width:100%;text-align:left;padding:10px 0;background:none;border:none;color:#e2e8f0;cursor:pointer;font-size:0.9rem">What is this?</button>
+    <div data-accordion-panel style="padding:0 0 10px 0;color:#94a3b8;font-size:0.85rem">This is the answer.</div>
+  </div>
+  <div data-accordion-item style="border-bottom:1px solid #334155">
+    <button data-accordion-trigger style="width:100%;text-align:left;padding:10px 0;background:none;border:none;color:#e2e8f0;cursor:pointer;font-size:0.9rem">How does it work?</button>
+    <div data-accordion-panel style="padding:0 0 10px 0;color:#94a3b8;font-size:0.85rem">This is the second answer.</div>
+  </div>
+</morph-accordion>
+
+──────────────────────────────────────────────
+<morph-carousel>  Slide through a sequence
+──────────────────────────────────────────────
+STRUCTURE RULES:
+  • Each slide is a child with data-carousel-slide. Only one is visible at a time.
+  • Add prev/next buttons with data-carousel-prev / data-carousel-next anywhere inside.
+  • Optional dot indicators: children with data-carousel-dot jump to the slide at their position.
+  • No state persistence — the active slide resets on reload.
+
+Working example:
+<morph-carousel id="slides" style="display:block">
+  <div data-carousel-slide style="padding:20px;background:#1e293b;color:#f1f5f9">Slide one</div>
+  <div data-carousel-slide style="padding:20px;background:#1e293b;color:#f1f5f9">Slide two</div>
+  <div style="display:flex;justify-content:space-between;padding:8px 0">
+    <button data-carousel-prev style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:1.4rem">&#8249;</button>
+    <button data-carousel-next style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:1.4rem">&#8250;</button>
+  </div>
+</morph-carousel>
 
 ──────────────────────────────────────────────
 NEVER generate <script>, on* event attributes, javascript: URLs, or <form> — all are stripped.
