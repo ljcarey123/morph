@@ -40,6 +40,7 @@ export const SANDBOX_RUNTIME_SCRIPT = `
     class extends HTMLElement {
       connectedCallback() {
         var self = this;
+        var stateKey = self.getAttribute("data-state-key");
         var triggers = Array.from(this.querySelectorAll("[data-tab-trigger]"));
         // Panels should be inside morph-tabs, but the LLM sometimes places them as
         // siblings. Fall back to searching the nearest parent so both cases work.
@@ -49,10 +50,11 @@ export const SANDBOX_RUNTIME_SCRIPT = `
         }
         console.debug("[morph-tabs] connected", {
           id: self.id,
+          stateKey: stateKey,
           triggerNames: triggers.map(function (t) { return t.getAttribute("data-tab-trigger"); }),
           panelNames: panels.map(function (p) { return p.getAttribute("data-tab-panel"); }),
         });
-        function activate(name) {
+        function activate(name, save) {
           triggers.forEach(function (trigger) {
             var isActive = trigger.getAttribute("data-tab-trigger") === name;
             trigger.toggleAttribute("data-active", isActive);
@@ -62,19 +64,32 @@ export const SANDBOX_RUNTIME_SCRIPT = `
             trigger.style.fontWeight = isActive ? "600" : "400";
           });
           panels.forEach(function (panel) {
-            panel.hidden = panel.getAttribute("data-tab-panel") !== name;
+            var isActive = panel.getAttribute("data-tab-panel") === name;
+            // Clear inline display:none before unhiding — the LLM sometimes
+            // pre-hides panels this way, which survives removal of the hidden attr.
+            if (isActive) panel.style.removeProperty("display");
+            panel.hidden = !isActive;
           });
+          if (save && stateKey) bridge.reportState(stateKey, name);
         }
         triggers.forEach(function (trigger) {
           trigger.addEventListener("click", function () {
             var name = trigger.getAttribute("data-tab-trigger");
             console.debug("[morph-tabs] trigger clicked", { id: self.id, name: name });
-            activate(name);
+            activate(name, true);
           });
         });
         var initial =
           this.getAttribute("default-tab") || (triggers[0] && triggers[0].getAttribute("data-tab-trigger"));
-        if (initial) activate(initial);
+        if (initial) activate(initial, false);
+        if (stateKey) {
+          bridge.requestState(stateKey, function (stored) {
+            var names = triggers.map(function (t) { return t.getAttribute("data-tab-trigger"); });
+            if (stored && typeof stored === "string" && names.indexOf(stored) !== -1) {
+              activate(stored, false);
+            }
+          });
+        }
       }
     },
   );
@@ -245,6 +260,9 @@ export const SANDBOX_RUNTIME_SCRIPT = `
         var mode = this.getAttribute("trigger") === "click" ? "click" : "hover";
         console.debug("[morph-tooltip] connected", { id: this.id, mode: mode });
         var self = this;
+        // Clear inline display:none before the runtime takes over — the LLM often
+        // pre-hides tooltip content this way, which survives removal of hidden attr.
+        content.style.removeProperty("display");
         content.hidden = true;
         if (mode === "hover") {
           trigger.addEventListener("mouseenter", function () {

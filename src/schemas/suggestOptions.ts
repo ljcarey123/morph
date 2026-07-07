@@ -13,13 +13,14 @@ export const suggestOptionsSchema = z.object({
               'to the generator when they click the chip — make it detailed and specific.',
           ),
         mode: z
-          .enum(['canvas', 'dashboard'])
+          .enum(['simple', 'canvas', 'dashboard'])
           .describe(
-            '"canvas" for free-form visual layouts: maps, diagrams, charts, timelines, ' +
-              'SVG graphics, network graphs, infographics, anything primarily visual. ' +
-              '"dashboard" for structured data-exploration: a card grid of entities with ' +
-              'stats, a tabbed multi-section view, or a control panel with counters/toggles ' +
-              'the user will operate.',
+            '"simple" for plain, static visual output: reference cards, summaries, typography-' +
+              'driven layouts, any content where interactivity adds no value. Fast and reliable. ' +
+              '"canvas" for richer visual layouts that benefit from tab navigation or hover ' +
+              'tooltips: maps, diagrams, timelines, infographics with sections to explore. ' +
+              '"dashboard" for structured data-exploration: a card grid of entities with stats, ' +
+              'counters and on/off toggles the user will actively operate.',
           ),
       }),
     )

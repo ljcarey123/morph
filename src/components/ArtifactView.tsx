@@ -116,7 +116,11 @@ export function ArtifactView({
                   ? 'bg-violet-100 text-violet-600'
                   : 'bg-slate-100 text-slate-500'
               }`}>
-                {tab.generationMode === 'dynamic' ? 'Dashboard' : 'Canvas'}
+                {tab.generationMode === 'dynamic'
+                  ? 'Dashboard'
+                  : tab.generationMode === 'simple'
+                    ? 'Simple'
+                    : 'Canvas'}
               </span>
               <span className="text-[10px] uppercase tracking-wider text-slate-400">
                 {tab.uiType === 'svg_diagram' ? 'SVG' : 'HTML'}
@@ -168,8 +172,8 @@ export function ArtifactView({
 
   return (
     <>
-      {/* Normal (in-flow) view — key increments on fullscreen exit to replay grow-in */}
-      <div key={inFlowKey} className="flex h-full flex-col animate-[grow-in_500ms_cubic-bezier(0.34,1.56,0.64,1)_both]">
+      {/* Normal (in-flow) view — key changes on tab switch or fullscreen exit to replay grow-in */}
+      <div key={`${tab.id}-${inFlowKey}`} className="flex h-full flex-col animate-[grow-in_500ms_cubic-bezier(0.34,1.56,0.64,1)_both]">
         {headerContent(false)}
         {isExpanded ? (
           <div className="flex flex-1 items-center justify-center gap-2 text-xs text-slate-400">

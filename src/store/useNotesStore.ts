@@ -15,7 +15,7 @@ interface NotesState {
   setActiveNoteId: (id: string | null) => void
   setApiKey: (key: string | null) => void
   reorderNotes: (orderedIds: string[]) => void
-  addPendingTab: (id: string, direction: string, previousCode?: string) => string
+  addPendingTab: (id: string, direction: string) => string
   patchGeneratedTab: (
     id: string,
     tabId: string,
@@ -103,7 +103,7 @@ export const useNotesStore = create<NotesState>()(
         set({ userApiKey: key })
       },
 
-      addPendingTab: (id, direction, previousCode) => {
+      addPendingTab: (id: string, direction: string) => {
         const tabId = crypto.randomUUID()
         console.debug('[useNotesStore] addPendingTab', { noteId: id, tabId, direction })
         set((state) => {
@@ -116,8 +116,6 @@ export const useNotesStore = create<NotesState>()(
             explanation: '',
             suggestedActions: [],
             direction,
-            previousCode,
-            mode: 'branch',
             createdAt: Date.now(),
             status: 'streaming',
           }

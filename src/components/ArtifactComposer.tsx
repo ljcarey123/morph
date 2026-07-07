@@ -4,11 +4,11 @@ import { useSuggestOptions } from '@/hooks/useSuggestOptions'
 import { Button } from '@/components/ui/Button'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
-type GenerationMode = 'canvas' | 'dashboard'
+type GenerationMode = 'simple' | 'canvas' | 'dashboard'
 
 interface ArtifactComposerProps {
   noteId: string
-  generate: (content: string, direction: string, previousCode?: string) => void
+  generate: (content: string, direction: string, style?: 'simple' | 'canvas') => void
   generateDynamic: (content: string, direction: string) => Promise<void>
   isLoading: boolean
   error: Error | undefined
@@ -53,7 +53,7 @@ export function ArtifactComposer({
     if (mode === 'dashboard') {
       void generateDynamic(note.content, text)
     } else {
-      generate(note.content, text)
+      generate(note.content, text, mode)
     }
   }
 
@@ -127,7 +127,7 @@ export function ArtifactComposer({
 
       <div className="flex items-center gap-2">
         <div className="flex shrink-0 rounded-full bg-slate-100 p-0.5 text-xs">
-          {(['canvas', 'dashboard'] as const).map((m) => (
+          {(['simple', 'canvas', 'dashboard'] as const).map((m) => (
             <button
               key={m}
               type="button"

@@ -88,7 +88,7 @@ describe('ArtifactComposer', () => {
     await user.click(screen.getByRole('button', { name: 'Send' }))
 
     await waitFor(() => {
-      expect(generate).toHaveBeenCalledWith('hello world', 'Build a timeline')
+      expect(generate).toHaveBeenCalledWith('hello world', 'Build a timeline', 'canvas')
     })
   })
 
@@ -133,7 +133,29 @@ describe('ArtifactComposer', () => {
     await user.click(screen.getByRole('button', { name: 'Send' }))
 
     await waitFor(() => {
-      expect(generate).toHaveBeenCalledWith('hello world', 'Make a chart')
+      expect(generate).toHaveBeenCalledWith('hello world', 'Make a chart', 'canvas')
+    })
+  })
+
+  it('calls generate with simple style when Simple toggle is selected', async () => {
+    const generate = vi.fn()
+    const user = userEvent.setup()
+    render(
+      <ArtifactComposer
+        noteId="a"
+        generate={generate}
+        generateDynamic={vi.fn()}
+        isLoading={false}
+        error={undefined}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'simple' }))
+    await user.type(screen.getByPlaceholderText(/Describe a new view/), 'Reference card')
+    await user.click(screen.getByRole('button', { name: 'Send' }))
+
+    await waitFor(() => {
+      expect(generate).toHaveBeenCalledWith('hello world', 'Reference card', 'simple')
     })
   })
 
@@ -153,7 +175,7 @@ describe('ArtifactComposer', () => {
     await user.type(screen.getByPlaceholderText(/Describe a new view/), 'Build a timeline{Enter}')
 
     await waitFor(() => {
-      expect(generate).toHaveBeenCalledWith('hello world', 'Build a timeline')
+      expect(generate).toHaveBeenCalledWith('hello world', 'Build a timeline', 'canvas')
     })
   })
 

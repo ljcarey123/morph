@@ -25,26 +25,28 @@ export function NoteWorkspace({ noteId }: NoteWorkspaceProps) {
   } = useGenerativeDynamicUI(noteId)
   const activeTab = note?.tabs.find((tab) => tab.id === note.activeTabId)
   const combinedIsLoading = isLoading || isDynamicLoading
-  const isAnyBusy = combinedIsLoading
   const isStreamingActiveTab = combinedIsLoading && activeTab?.status === 'streaming'
-  const isBranchStreamingActiveTab = !!activeTab && isStreamingActiveTab && activeTab.mode !== 'edit'
-  const isApplyingEdit = !!activeTab && isStreamingActiveTab && activeTab.mode === 'edit'
   const throttledPartial = useThrottledValue(partialUI, THROTTLE_MS, !isLoading)
 
   const code =
-    isBranchStreamingActiveTab && !isDynamicLoading ? throttledPartial?.code : activeTab?.code
+    isStreamingActiveTab && !isDynamicLoading ? throttledPartial?.code : activeTab?.code
   const uiType =
-    isBranchStreamingActiveTab && !isDynamicLoading ? throttledPartial?.ui_type : activeTab?.uiType
+    isStreamingActiveTab && !isDynamicLoading ? throttledPartial?.ui_type : activeTab?.uiType
   const explanation =
-    isBranchStreamingActiveTab && !isDynamicLoading
+    isStreamingActiveTab && !isDynamicLoading
       ? throttledPartial?.explanation
       : activeTab?.explanation
-  const isAwaitingFirstContent = isBranchStreamingActiveTab && !code
+  const isAwaitingFirstContent = isStreamingActiveTab && !code
 
   if (!note) return null
 
   const handleRetry = (tab: GeneratedUITab): void => {
-    retry(tab.id, note.content, tab.direction, tab.previousCode, tab.mode)
+    if (tab.generationMode === 'dynamic') {
+      void generateDynamic(note.content, tab.direction)
+    } else {
+      const style = tab.generationMode === 'simple' ? 'simple' : 'canvas'
+      retry(tab.id, note.content, tab.direction, style)
+    }
   }
 
   const handleCancel = (tab: GeneratedUITab): void => {
@@ -54,7 +56,7 @@ export function NoteWorkspace({ noteId }: NoteWorkspaceProps) {
 
   return (
     <div
-      className={`flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl bg-white transition-[box-shadow] duration-500 ${isAnyBusy ? 'animate-[pulse-glow_2s_ease-in-out_infinite]' : 'shadow-[0_4px_24px_rgba(0,0,0,0.07)]'}`}
+      className={`flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl bg-white transition-[box-shadow] duration-500 ${combinedIsLoading ? 'animate-[pulse-glow_2s_ease-in-out_infinite]' : 'shadow-[0_4px_24px_rgba(0,0,0,0.07)]'}`}
     >
       <ArtifactTabs noteId={noteId} />
       <div className="flex-1 overflow-auto">
@@ -67,8 +69,8 @@ export function NoteWorkspace({ noteId }: NoteWorkspaceProps) {
             code={code}
             uiType={uiType}
             explanation={explanation}
-            isAwaitingFirstContent={isAwaitingFirstContent}
-            isApplyingEdit={isApplyingEdit}
+            isAwaitingFirstContent={isAwaitingFirstContent ?? false}
+            isApplyingEdit={false}
             isLoading={combinedIsLoading}
             onRetry={handleRetry}
             onCancel={handleCancel}

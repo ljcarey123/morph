@@ -19,9 +19,7 @@ export interface GeneratedUITab {
   explanation: string
   suggestedActions: string[]
   direction: string
-  previousCode?: string
-  mode?: 'branch' | 'edit'
-  generationMode?: 'static' | 'dynamic'
+  generationMode?: 'simple' | 'canvas' | 'dynamic'
   createdAt: number
   status: 'streaming' | 'done' | 'error'
   error?: string

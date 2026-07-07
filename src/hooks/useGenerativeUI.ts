@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { experimental_useObject as useObject } from '@ai-sdk/react'
-import { generativeUiSchema } from '@/schemas/generativeUi'
+import { branchOutputSchema } from '@/schemas/generativeUi'
 import { useNotesStore } from '@/store/useNotesStore'
 import { HtmlPatcher } from '@/services/HtmlPatcher'
 import type { GeneratedUITab } from '@/types/note'
@@ -11,8 +11,7 @@ export function useGenerativeUI(noteId: string) {
   const patchGeneratedTab = useNotesStore((state) => state.patchGeneratedTab)
   const removeTab = useNotesStore((state) => state.removeTab)
   const tabIdRef = useRef<string | null>(null)
-  const modeRef = useRef<'branch' | 'edit'>('branch')
-  const previousCodeRef = useRef<string | undefined>(undefined)
+  const styleRef = useRef<'simple' | 'canvas'>('canvas')
 
   const {
     object: partialUI,
@@ -21,7 +20,7 @@ export function useGenerativeUI(noteId: string) {
     error,
   } = useObject({
     api: '/api/generate-ui',
-    schema: generativeUiSchema,
+    schema: branchOutputSchema,
     headers: () => ({
       'x-user-api-key': userApiKey ?? '',
     }),
@@ -29,11 +28,9 @@ export function useGenerativeUI(noteId: string) {
       const tabId = tabIdRef.current
       console.debug('[useGenerativeUI] onFinish', {
         tabId,
-        mode: modeRef.current,
+        style: styleRef.current,
         hasObject: Boolean(object),
         codeLength: object?.code?.length ?? 0,
-        targetId: object?.target_id,
-        replacementHtmlLength: object?.replacement_html?.length ?? 0,
         finishError: finishError?.message,
       })
       if (!tabId) return
@@ -51,51 +48,20 @@ export function useGenerativeUI(noteId: string) {
         return
       }
 
-      if (modeRef.current === 'edit' && object.target_id && object.replacement_html) {
-        const patched = HtmlPatcher.applyPatch(
-          previousCodeRef.current ?? '',
-          object.target_id,
-          object.replacement_html,
-        )
-        if (patched === null) {
-          console.debug('[useGenerativeUI] patch target not found', {
-            tabId,
-            targetId: object.target_id,
-          })
-          patchGeneratedTab(noteId, tabId, {
-            error: `Could not find an element with id "${object.target_id}" to edit — try again or describe the change differently.`,
-            status: 'error',
-          })
-          return
-        }
-        patchGeneratedTab(noteId, tabId, {
-          code: patched,
-          explanation: object.explanation,
-          suggestedActions: object.suggested_actions,
-          generationMode: 'static',
-          status: 'done',
-          error: undefined,
-        })
-        return
-      }
-
       if (object.code) {
         patchGeneratedTab(noteId, tabId, {
           uiType: object.ui_type,
           code: HtmlPatcher.normalize(object.code),
           explanation: object.explanation,
           suggestedActions: object.suggested_actions,
-          generationMode: 'static',
+          generationMode: styleRef.current,
           status: 'done',
           error: undefined,
         })
         return
       }
 
-      console.warn(
-        '[useGenerativeUI] response matched neither the patch nor the full-document shape:',
-        object,
-      )
+      console.warn('[useGenerativeUI] response missing code field:', object)
       patchGeneratedTab(noteId, tabId, {
         error: 'The model returned an incomplete response — try again.',
         status: 'error',
@@ -112,51 +78,28 @@ export function useGenerativeUI(noteId: string) {
     },
   })
 
-  const generate = (content: string, direction: string, previousCode?: string): void => {
-    tabIdRef.current = addPendingTab(noteId, direction, previousCode)
-    modeRef.current = 'branch'
-    previousCodeRef.current = previousCode
+  const generate = (content: string, direction: string, style: 'simple' | 'canvas' = 'canvas'): void => {
+    tabIdRef.current = addPendingTab(noteId, direction)
+    styleRef.current = style
     console.debug('[useGenerativeUI] generate', {
       tabId: tabIdRef.current,
+      style,
       direction,
-      hasPreviousCode: Boolean(previousCode),
     })
-    submit({ content, direction, previousCode, mode: 'branch' })
+    submit({ content, direction, style })
   }
 
   const retry = (
     tabId: string,
     content: string,
     direction: string,
-    previousCode?: string,
-    mode: 'branch' | 'edit' = 'branch',
+    style: 'simple' | 'canvas' = 'canvas',
   ): void => {
     tabIdRef.current = tabId
-    modeRef.current = mode
-    previousCodeRef.current = previousCode
-    console.debug('[useGenerativeUI] retry', { tabId, mode, direction })
+    styleRef.current = style
+    console.debug('[useGenerativeUI] retry', { tabId, style, direction })
     patchGeneratedTab(noteId, tabId, { status: 'streaming', error: undefined })
-    submit({ content, direction, previousCode, mode })
-  }
-
-  const editTab = (
-    tabId: string,
-    content: string,
-    direction: string,
-    previousCode?: string,
-  ): void => {
-    tabIdRef.current = tabId
-    modeRef.current = 'edit'
-    previousCodeRef.current = previousCode
-    console.debug('[useGenerativeUI] editTab', { tabId, direction })
-    patchGeneratedTab(noteId, tabId, {
-      direction,
-      previousCode,
-      mode: 'edit',
-      status: 'streaming',
-      error: undefined,
-    })
-    submit({ content, direction, previousCode, mode: 'edit' })
+    submit({ content, direction, style })
   }
 
   const cancelError = (tab: GeneratedUITab): void => {
@@ -167,5 +110,5 @@ export function useGenerativeUI(noteId: string) {
     }
   }
 
-  return { partialUI, generate, retry, editTab, cancelError, isLoading, error }
+  return { partialUI, generate, retry, cancelError, isLoading, error }
 }

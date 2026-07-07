@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { branchOutputSchema, editOutputSchema } from '../src/schemas/generativeUi'
+import { branchOutputSchema } from '../src/schemas/generativeUi'
 
 const streamTextMock = vi.fn()
 const objectOutputMock = vi.fn()
@@ -31,7 +31,7 @@ describe('POST /api/generate-ui', () => {
     const req = new Request('http://localhost/api/generate-ui', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: 'note text' }),
+      body: JSON.stringify({ content: 'note text', direction: 'Timeline' }),
     })
 
     const response = await handler(req)
@@ -46,7 +46,7 @@ describe('POST /api/generate-ui', () => {
     const req = new Request('http://localhost/api/generate-ui', {
       method: 'POST',
       headers: { 'x-user-api-key': '' },
-      body: JSON.stringify({ content: 'note text' }),
+      body: JSON.stringify({ content: 'note text', direction: 'Timeline' }),
     })
 
     const response = await handler(req)
@@ -76,63 +76,43 @@ describe('POST /api/generate-ui', () => {
     expect(response).toBe(expectedResponse)
   })
 
-  it('folds previousCode into the prompt when correcting an existing tab', async () => {
-    streamTextMock.mockReturnValue({
-      toTextStreamResponse: () => new Response('stream-body'),
-    })
+  it('canvas style includes morph-tabs and morph-tooltip docs but forbids raw scripts', async () => {
+    streamTextMock.mockReturnValue({ toTextStreamResponse: () => new Response('stream-body') })
 
     const req = new Request('http://localhost/api/generate-ui', {
       method: 'POST',
       headers: { 'x-user-api-key': 'user-supplied-key' },
-      body: JSON.stringify({
-        content: 'note text',
-        direction: 'Make it blue',
-        previousCode: '<div class="red"></div>',
-      }),
+      body: JSON.stringify({ content: 'note text', direction: 'Timeline', style: 'canvas' }),
     })
 
     await handler(req)
 
-    const callArgs = streamTextMock.mock.calls[0]?.[0] as { prompt: string }
-    expect(callArgs.prompt).toContain('Make it blue')
-    expect(callArgs.prompt).toContain('<div class="red"></div>')
-    expect(callArgs.prompt).toContain('Mode: branch')
-    expect(callArgs.prompt).toContain('Previous code to correct or expand on')
+    const callArgs = streamTextMock.mock.calls[0]?.[0] as { system: string }
+    expect(callArgs.system).toContain('morph-tabs')
+    expect(callArgs.system).toContain('morph-tooltip')
+    expect(callArgs.system).toContain('default-tab')
+    expect(callArgs.system).not.toContain('No interactivity')
   })
 
-  it('frames the prompt as a targeted refinement when mode is edit', async () => {
-    streamTextMock.mockReturnValue({
-      toTextStreamResponse: () => new Response('stream-body'),
-    })
+  it('simple style uses a stripped prompt — no morph-* components', async () => {
+    streamTextMock.mockReturnValue({ toTextStreamResponse: () => new Response('stream-body') })
 
     const req = new Request('http://localhost/api/generate-ui', {
       method: 'POST',
       headers: { 'x-user-api-key': 'user-supplied-key' },
-      body: JSON.stringify({
-        content: 'note text',
-        direction: 'Make it blue',
-        previousCode: '<div class="red"></div>',
-        mode: 'edit',
-      }),
+      body: JSON.stringify({ content: 'note text', direction: 'Reference card', style: 'simple' }),
     })
 
     await handler(req)
 
-    const callArgs = streamTextMock.mock.calls[0]?.[0] as { prompt: string; system: string }
-    expect(callArgs.prompt).toContain('Mode: edit')
-    expect(callArgs.prompt).toContain('Existing view to refine')
-    expect(callArgs.prompt).not.toContain('Previous code to correct or expand on')
-    expect(callArgs.system).toContain('Always respond with a patch')
-    expect(callArgs.system).toContain(
-      'Never drop, blank out, collapse, or replace untouched sections',
-    )
-    expect(callArgs.system).not.toContain('complete, self-contained markup for the ENTIRE view')
+    const callArgs = streamTextMock.mock.calls[0]?.[0] as { system: string }
+    expect(callArgs.system).toContain('No interactivity')
+    expect(callArgs.system).not.toContain('INTERACTIVE COMPONENTS')
+    expect(callArgs.system).not.toContain('morph-tabs')
   })
 
-  it('uses a dedicated branch-mode system prompt that never mentions the edit patch shape', async () => {
-    streamTextMock.mockReturnValue({
-      toTextStreamResponse: () => new Response('stream-body'),
-    })
+  it('defaults to canvas style when style is omitted', async () => {
+    streamTextMock.mockReturnValue({ toTextStreamResponse: () => new Response('stream-body') })
 
     const req = new Request('http://localhost/api/generate-ui', {
       method: 'POST',
@@ -143,35 +123,32 @@ describe('POST /api/generate-ui', () => {
     await handler(req)
 
     const callArgs = streamTextMock.mock.calls[0]?.[0] as { system: string }
-    expect(callArgs.system).toContain('stable, descriptive, kebab-case id attribute')
-    expect(callArgs.system).toContain('complete, self-contained markup for the ENTIRE view')
-    expect(callArgs.system).not.toContain('Always respond with a patch')
-    expect(callArgs.system).not.toContain('SMALLEST element')
+    expect(callArgs.system).toContain('morph-tabs')
   })
 
-  it('mandates stable ids on generated elements and explains the edit-mode patch option', async () => {
-    streamTextMock.mockReturnValue({
-      toTextStreamResponse: () => new Response('stream-body'),
-    })
+  it('mandates stable ids, viewport sizing, and visual style rules in both styles', async () => {
+    for (const style of ['simple', 'canvas'] as const) {
+      streamTextMock.mockReset()
+      streamTextMock.mockReturnValue({ toTextStreamResponse: () => new Response('') })
 
-    const req = new Request('http://localhost/api/generate-ui', {
-      method: 'POST',
-      headers: { 'x-user-api-key': 'user-supplied-key' },
-      body: JSON.stringify({ content: 'note text', direction: 'Make it blue', mode: 'edit' }),
-    })
+      const req = new Request('http://localhost/api/generate-ui', {
+        method: 'POST',
+        headers: { 'x-user-api-key': 'user-supplied-key' },
+        body: JSON.stringify({ content: 'note text', direction: 'Build a view', style }),
+      })
 
-    await handler(req)
+      await handler(req)
 
-    const callArgs = streamTextMock.mock.calls[0]?.[0] as { system: string }
-    expect(callArgs.system).toContain('stable, descriptive, kebab-case id attribute')
-    expect(callArgs.system).toContain('target_id')
-    expect(callArgs.system).toContain('replacement_html')
+      const callArgs = streamTextMock.mock.calls[0]?.[0] as { system: string }
+      expect(callArgs.system).toContain('stable, unique kebab-case id')
+      expect(callArgs.system).toContain('600px')
+      expect(callArgs.system).toContain('complete markup for the entire view')
+    }
   })
 
   it('never logs or echoes the supplied api key in the response', async () => {
-    streamTextMock.mockReturnValue({
-      toTextStreamResponse: () => new Response('ok'),
-    })
+    streamTextMock.mockReturnValue({ toTextStreamResponse: () => new Response('ok') })
+
     const req = new Request('http://localhost/api/generate-ui', {
       method: 'POST',
       headers: { 'x-user-api-key': 'super-secret-key' },
@@ -197,10 +174,8 @@ describe('POST /api/generate-ui', () => {
     expect(streamTextMock).not.toHaveBeenCalled()
   })
 
-  it('constrains branch-mode output to a schema where code is mandatory, not optional', async () => {
-    streamTextMock.mockReturnValue({
-      toTextStreamResponse: () => new Response('stream-body'),
-    })
+  it('constrains output to a schema where code is mandatory', async () => {
+    streamTextMock.mockReturnValue({ toTextStreamResponse: () => new Response('stream-body') })
 
     const req = new Request('http://localhost/api/generate-ui', {
       method: 'POST',
@@ -213,70 +188,8 @@ describe('POST /api/generate-ui', () => {
     expect(objectOutputMock).toHaveBeenCalledWith({ schema: branchOutputSchema })
   })
 
-  it('constrains edit-mode output to a schema where target_id/replacement_html are mandatory', async () => {
-    streamTextMock.mockReturnValue({
-      toTextStreamResponse: () => new Response('stream-body'),
-    })
-
-    const req = new Request('http://localhost/api/generate-ui', {
-      method: 'POST',
-      headers: { 'x-user-api-key': 'user-supplied-key' },
-      body: JSON.stringify({
-        content: 'note text',
-        direction: 'Make it blue',
-        previousCode: '<div class="red"></div>',
-        mode: 'edit',
-      }),
-    })
-
-    await handler(req)
-
-    expect(objectOutputMock).toHaveBeenCalledWith({ schema: editOutputSchema })
-  })
-
-  it('includes morph-* component docs in branch mode but not raw script/onclick', async () => {
-    streamTextMock.mockReturnValue({
-      toTextStreamResponse: () => new Response('stream-body'),
-    })
-
-    const req = new Request('http://localhost/api/generate-ui', {
-      method: 'POST',
-      headers: { 'x-user-api-key': 'user-supplied-key' },
-      body: JSON.stringify({ content: 'note text', direction: 'Timeline' }),
-    })
-
-    await handler(req)
-
-    const callArgs = streamTextMock.mock.calls[0]?.[0] as { system: string }
-    expect(callArgs.system).toContain('morph-toggle')
-    expect(callArgs.system).toContain('morph-tabs')
-    expect(callArgs.system).toContain('data-state-key')
-    expect(callArgs.system).not.toContain('No interactivity')
-    expect(callArgs.system).toContain('ONLY interactive elements allowed')
-  })
-
-  it('keeps morph-* out of edit-mode prompt — edits patch existing static HTML', async () => {
-    streamTextMock.mockReturnValue({
-      toTextStreamResponse: () => new Response('stream-body'),
-    })
-
-    const req = new Request('http://localhost/api/generate-ui', {
-      method: 'POST',
-      headers: { 'x-user-api-key': 'user-supplied-key' },
-      body: JSON.stringify({ content: 'note text', direction: 'Make it blue', mode: 'edit' }),
-    })
-
-    await handler(req)
-
-    const callArgs = streamTextMock.mock.calls[0]?.[0] as { system: string }
-    expect(callArgs.system).toContain('No interactivity')
-    expect(callArgs.system).not.toContain('Available components')
-  })
-
   it('wraps untrusted fields in delimiter tags and warns the model not to follow them', async () => {
-    streamTextMock.mockReturnValue({
-      toTextStreamResponse: () => new Response('stream-body'),
-    })
+    streamTextMock.mockReturnValue({ toTextStreamResponse: () => new Response('stream-body') })
 
     const req = new Request('http://localhost/api/generate-ui', {
       method: 'POST',

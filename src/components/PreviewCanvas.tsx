@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { SandboxOrchestrator } from '@/services/SandboxOrchestrator'
 import { sandboxBridgeMessageSchema } from '@/schemas/sandboxBridge'
 import { useNotesStore } from '@/store/useNotesStore'
@@ -45,11 +45,16 @@ export function PreviewCanvas({ noteId, tabId, code, uiType }: PreviewCanvasProp
     }
   }, [noteId, tabId, patchComponentState])
 
+  const srcDoc = useMemo(
+    () => SandboxOrchestrator.compileHtmlTemplate(code, uiType ?? 'html_snippet'),
+    [code, uiType],
+  )
+
   return (
     <iframe
       ref={iframeRef}
       title="Generated UI preview"
-      srcDoc={SandboxOrchestrator.compileHtmlTemplate(code, uiType ?? 'html_snippet')}
+      srcDoc={srcDoc}
       sandbox="allow-popups allow-scripts"
       className="h-full w-full border-none transition-all duration-300"
     />

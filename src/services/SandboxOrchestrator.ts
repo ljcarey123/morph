@@ -21,6 +21,15 @@ export const SandboxOrchestrator = {
     <style>
       :root { color-scheme: light; }
       body { margin: 0; min-height: 100vh; background: #ffffff; color: #111827; font-family: system-ui, -apple-system, sans-serif; }
+      /* Affordance layer — ensures morph-* interactive elements always signal clickability
+         regardless of whether the LLM or renderer explicitly styled them. */
+      [data-tab-trigger],[data-accordion-trigger],
+      [data-carousel-prev],[data-carousel-next],[data-carousel-dot],
+      [data-counter-increment],[data-counter-decrement],
+      morph-toggle { cursor: pointer; }
+      [data-tooltip-trigger] { cursor: help; }
+      [data-tab-trigger] { transition: opacity 0.15s; }
+      [data-tab-trigger]:not([data-active]):hover { opacity: 0.8 !important; }
     </style>
   </head>
   <body>${body}<script>${SANDBOX_RUNTIME_SCRIPT}</script></body>

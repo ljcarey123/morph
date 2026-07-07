@@ -93,7 +93,6 @@ describe('useNotesStore', () => {
       explanation: '',
       suggestedActions: [],
       direction: 'Timeline',
-      mode: 'branch',
       status: 'streaming',
     })
     expect(note?.activeTabId).toBe(tabId)

@@ -57,21 +57,3 @@ export const branchOutputSchema = z.object({
   suggested_actions: z.array(z.string()).max(3),
 })
 
-export const editOutputSchema = z.object({
-  target_id: z
-    .string()
-    .min(1)
-    .describe('The id of the existing element to replace with replacement_html.'),
-  replacement_html: z
-    .string()
-    .min(1)
-    .describe(
-      "Markup to replace the target element with, including that element's own opening tag " +
-        'carrying the same id. Always required alongside target_id in this mode. Write this ' +
-        'before "explanation".',
-    ),
-  explanation: z
-    .string()
-    .describe('One or two sentence summary of what changed and why. Keep it brief.'),
-  suggested_actions: z.array(z.string()).max(3),
-})

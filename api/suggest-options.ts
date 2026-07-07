@@ -7,26 +7,34 @@ import { PROMPT_TAGS, UNTRUSTED_DATA_NOTICE, sanitizeText, wrapInTag } from './_
 export const config = { runtime: 'edge' }
 
 const SYSTEM_PROMPT =
-  "You suggest visualization ideas for a note-taking app's UI generator. Given a " +
-  "note's content, propose exactly 3 distinct, imaginative directions — each one " +
-  'specific to what the note is actually about, referencing real names, dates, ' +
-  'figures, or themes from the content rather than generic placeholders.\n\n' +
-  'Format:\n' +
-  '- label: 2–4 word title for the chip (e.g. "Legion Deployment Map")\n' +
-  '- description: a vivid 1–2 sentence prompt written as a direct instruction to ' +
-  'the UI generator — specific enough that a designer could execute it without ' +
-  'reading the note. Reference actual content (names, numbers, events). Start with ' +
-  'an action verb ("Draw", "Build", "Show", "Render", "Map", "Chart"). ' +
-  'Aim for 25–50 words.\n' +
-  '- mode: pick "canvas" or "dashboard".\n' +
-  '  Use "canvas" for any primarily visual output: maps, diagrams, charts, timelines, ' +
-  'SVG graphics, network graphs, infographics, annotated illustrations.\n' +
-  '  Use "dashboard" only when the suggestion is specifically a structured data-exploration ' +
-  'interface: a card grid of entities with stats, a tabbed multi-section view, or a control ' +
-  'panel with counters or toggles the user will operate (e.g. "adjust troop counts", ' +
-  '"toggle province visibility").\n\n' +
-  'Aim for variety across the 3 suggestions — different modes, chart types, or visual metaphors. ' +
-  'Do not suggest a table or plain timeline every time.\n\n' +
+  "You suggest visualization ideas for a note-taking app's UI generator. Given a note's " +
+  'content, propose exactly 3 distinct, imaginative directions — each specific to what the ' +
+  'note is actually about, referencing real names, dates, figures, or themes rather than ' +
+  'generic placeholders.\n\n' +
+
+  'FORMAT:\n' +
+  '• label: 2–4 word chip title (e.g. "Legion Deployment Map")\n' +
+  '• description: a vivid 1–2 sentence prompt written as a direct instruction — specific ' +
+  'enough that a designer could execute it without reading the note. Reference actual ' +
+  'content. Start with an action verb (Draw, Build, Show, Render, Map, Chart). 25–50 words.\n' +
+  '• mode: "canvas" or "dashboard" (see below)\n\n' +
+
+  'MODE GUIDE:\n' +
+  '• "simple" — plain static visual output: reference cards, summary layouts, ' +
+  'typography-driven infographics, annotated illustrations. No interactive components. ' +
+  'Best when the note is text-heavy or the value is in clean presentation, not navigation.\n' +
+  '• "canvas" — richer visual output that benefits from tab navigation (explore multiple ' +
+  'sections) or hover tooltips (annotated maps, diagrams with definitions). Same visual ' +
+  'freedom as simple, but use only when tabbing or tooltips genuinely add value.\n' +
+  '• "dashboard" — structured data explorer: a grid of entity cards with stats, a ' +
+  'tabbed multi-section view, or a panel with numeric counters and on/off toggles the ' +
+  'user will actively operate (e.g. "adjust troop counts", "toggle province visibility", ' +
+  '"track resource levels"). Choose dashboard when interaction — not just visual layout — ' +
+  'is the point.\n\n' +
+
+  'Aim for variety across the 3 suggestions: different modes, chart types, or visual ' +
+  'metaphors. Avoid suggesting the same visual form twice.\n\n' +
+
   UNTRUSTED_DATA_NOTICE
 
 const requestSchema = z.object({
@@ -49,19 +57,14 @@ export default async function handler(req: Request): Promise<Response> {
 
   const google = createGoogleGenerativeAI({ apiKey })
 
-  const sanitizedContent = wrapInTag(PROMPT_TAGS.noteContent, sanitizeText(content, 20000))
-
   const result = await generateText({
     model: google('gemini-flash-latest'),
     system: SYSTEM_PROMPT,
-    prompt: sanitizedContent,
+    prompt: wrapInTag(PROMPT_TAGS.noteContent, sanitizeText(content, 20000)),
     output: Output.object({ schema: suggestOptionsSchema }),
   })
 
-  console.debug('[api/suggest-options] result', {
-    optionCount: result.output.options.length,
-    finishReason: result.finishReason,
-  })
+  console.debug('[api/suggest-options] result', { optionCount: result.output.options.length })
 
   return Response.json(result.output)
 }
