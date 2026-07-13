@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { suggestOptionsSchema } from '../src/schemas/suggestOptions'
 import { PROMPT_TAGS, UNTRUSTED_DATA_NOTICE, sanitizeText, wrapInTag } from './_shared/sanitize'
 
-export const config = { runtime: 'edge' }
+export const maxDuration = 60
 
 const SYSTEM_PROMPT =
   "You suggest visualization ideas for a note-taking app's UI generator. Given a note's " +

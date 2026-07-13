@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { dynamicUiConfigSchema } from '../src/schemas/dynamicUi'
 import { PROMPT_TAGS, UNTRUSTED_DATA_NOTICE, sanitizeText, wrapInTag } from './_shared/sanitize'
 
-export const config = { runtime: 'edge' }
+export const maxDuration = 60
 
 const SYSTEM_PROMPT =
   'You are a Dashboard configuration engine. Given a note\'s content and a direction, output ' +

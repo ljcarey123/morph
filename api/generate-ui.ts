@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { branchOutputSchema } from '../src/schemas/generativeUi'
 import { PROMPT_TAGS, UNTRUSTED_DATA_NOTICE, sanitizeText, wrapInTag } from './_shared/sanitize'
 
-export const config = { runtime: 'edge' }
+export const maxDuration = 60
 
 // Canvas mode exposes four morph-* components (tabs, accordion, carousel, tooltip).
 // Stateful counters and toggles belong to Dashboard mode exclusively.
