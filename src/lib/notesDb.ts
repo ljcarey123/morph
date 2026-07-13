@@ -16,7 +16,7 @@ interface DbRow {
 }
 
 // Strip streaming tabs before persisting — never write in-progress generation state
-function toRow(note: Note, sortOrder: number): Omit<DbRow, 'user_id'> {
+function toRow(note: Note, sortOrder: number): Omit<DbRow, 'user_id'> { // user_id added by upsert()
   return {
     id: note.id,
     title: note.title,
@@ -58,7 +58,11 @@ export const notesDb = {
   },
 
   async upsert(note: Note, sortOrder: number): Promise<void> {
-    const { error } = await supabase.from('notes').upsert(toRow(note, sortOrder))
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) throw new Error('Not authenticated')
+    const { error } = await supabase
+      .from('notes')
+      .upsert({ ...toRow(note, sortOrder), user_id: session.user.id })
     if (error) throw error
   },
 

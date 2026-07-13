@@ -47,8 +47,6 @@ export function useAuth() {
     isLoading,
     signInWithMagicLink: (email: string) =>
       supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin } }),
-    signInWithGoogle: () =>
-      supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } }),
     signOut: () => supabase.auth.signOut(),
   }
 }

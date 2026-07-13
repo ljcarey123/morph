@@ -23,3 +23,6 @@ create policy "Users manage their own notes"
   for all
   using  (user_id = auth.uid())
   with check (user_id = auth.uid());
+
+-- Grant table-level privileges; RLS policies control row-level access within these.
+grant select, insert, update, delete on public.notes to authenticated;
